@@ -12,10 +12,12 @@ export function Match(property: string, validationOptions?: ValidationOptions) {
         validate(value: any, args: ValidationArguments) {
           const [relatedPropertyName] = args.constraints;
           const relatedValue = (args.object as any)[relatedPropertyName];
+
           return value === relatedValue;
         },
         defaultMessage(args: ValidationArguments) {
           const [relatedPropertyName] = args.constraints;
+          
           return `${propertyName} must match with ${relatedPropertyName}.`;
         },
       },
