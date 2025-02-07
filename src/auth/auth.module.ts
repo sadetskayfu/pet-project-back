@@ -5,16 +5,18 @@ import { PasswordService } from './password.service';
 import { CookieService } from './cookie.service';
 import { UserModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
+import { MailService } from './mail.service';
+import { UnconfirmedUserModule } from 'src/unconfirmedUsers/unconfirmedUsers.module';
 
 @Module({
-	imports: [UserModule, JwtModule.register({
+	imports: [UserModule, UnconfirmedUserModule, JwtModule.register({
         global: true,
         secret: process.env.JWT_SECRET,
         signOptions: {
             expiresIn: '1d'
         }
     })],
-	providers: [AuthService, PasswordService, CookieService],
+	providers: [AuthService, PasswordService, CookieService, MailService],
 	controllers: [AuthController],
 })
 export class AuthModule {}

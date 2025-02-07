@@ -5,9 +5,10 @@ import { UserModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { MovieModule } from './movies/movies.module';
 import { GenreModule } from './genres/genres.module';
+import { RoleModule } from './roles/roles.module';
 
 @Module({
-	imports: [GenreModule, MovieModule, UserModule, AuthModule],
+	imports: [GenreModule, MovieModule, UserModule, RoleModule, AuthModule],
 	controllers: [AppController],
 	providers: [AppService],
 })

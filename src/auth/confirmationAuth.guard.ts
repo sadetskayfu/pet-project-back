@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { SessionInfo } from './types';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class ConfirmationAuthGuard implements CanActivate {
 	constructor(private jwtService: JwtService) {}
 
 	canActivate(
@@ -29,10 +29,10 @@ export class AuthGuard implements CanActivate {
 				secret: process.env.JWT_SECRET,
 			});
 
-			if(!sessionInfo.isConfirmed) {
-				throw new UnauthorizedException();
+			if(sessionInfo.isConfirmed) {
+				throw new Error
 			}
-
+			
 			request['session'] = sessionInfo;
 		} catch {
 			throw new UnauthorizedException();

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail } from 'class-validator';
+import { IsEmail, IsEnum, IsIn, IsNotEmpty, IsString, Length } from 'class-validator';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
 import { IsValidPassword } from 'src/decorators/valid-password.decorator';
 
@@ -44,9 +44,23 @@ export class SessionInfoDto {
     @ApiProperty()
     email: string
 
+	@ApiProperty()
+	isConfirmed: boolean
+
     @ApiProperty()
     iat: number
 
     @ApiProperty()
     exp: number
+}
+
+export class ConfirmationBodyDto {
+	@ApiProperty({
+		example: '123456',
+		description: 'Код подтверждения'
+	})
+	@IsNotEmpty()
+	@IsString()
+	@Length(6, 6)
+	code: string
 }
