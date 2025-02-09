@@ -7,6 +7,8 @@ import { UserModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { MailService } from './mail.service';
 import { UnconfirmedUserModule } from 'src/unconfirmedUsers/unconfirmedUsers.module';
+import { ConfirmationCodeService } from './confirmationCode.service';
+import { TasksService } from './tasksService';
 
 @Module({
 	imports: [UserModule, UnconfirmedUserModule, JwtModule.register({
@@ -16,7 +18,7 @@ import { UnconfirmedUserModule } from 'src/unconfirmedUsers/unconfirmedUsers.mod
             expiresIn: '1d'
         }
     })],
-	providers: [AuthService, PasswordService, CookieService, MailService],
+	providers: [AuthService, PasswordService, CookieService, MailService, ConfirmationCodeService, TasksService],
 	controllers: [AuthController],
 })
 export class AuthModule {}

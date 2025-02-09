@@ -11,11 +11,12 @@ import {
 import { Response } from 'express';
 import {
 	ConfirmationBodyDto,
+	ConfirmationSessionInfoDto,
 	SessionInfoDto,
 	SignInBodyDto,
 	SignUpBodyDto,
 } from './dto';
-import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CookieService } from './cookie.service';
 import { AuthGuard } from './auth.guard';
@@ -32,8 +33,6 @@ export class AuthController {
 
 	@Post('sign-up')
 	@ApiOperation({ summary: 'Регистрация' })
-	@ApiResponse({ status: 201, description: 'Enter the code' })
-	@ApiResponse({ status: 400, description: 'The user with this email already exists' })
 	async signUp(
 		@Body() body: SignUpBodyDto,
 		@Res({ passthrough: true }) res: Response,
@@ -48,10 +47,8 @@ export class AuthController {
 	}
 
 	@Post('sign-in')
-	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Вход в систему' })
-	@ApiResponse({ status: 200, description: 'Enter the code' })
-	@ApiResponse({ status: 401, description: 'The user does not exist' })
+	@HttpCode(HttpStatus.OK)
 	async signIn(
 		@Body() body: SignInBodyDto,
 		@Res({ passthrough: true }) res: Response,
@@ -67,8 +64,6 @@ export class AuthController {
 	@Get('sign-out')
 	@UseGuards(AuthGuard)
 	@ApiOperation({ summary: 'Выход из системы' })
-	@ApiResponse({ status: 200, description: 'You have successfully logged out' })
-	@ApiResponse({ status: 401, description: 'You are not authorization' })
 	signOut(@Res({ passthrough: true }) res: Response) {
 		this.cookieService.removeToken(res);
 	}
@@ -76,8 +71,7 @@ export class AuthController {
 	@Get('session')
 	@UseGuards(AuthGuard)
 	@ApiOperation({ summary: 'Получение сессии' })
-	@ApiResponse({ status: 200, description: 'You have successfully logged in', type: SessionInfo })
-	@ApiResponse({ status: 401, description: 'You are not authorization' })
+	@ApiResponse({ status: 200, type: [SessionInfoDto] })
 	setSessionInfo(@SessionInfo() session: SessionInfoDto) {
 		return session;
 	}
@@ -85,9 +79,7 @@ export class AuthController {
 	@Get('sign-in/update-confirmation-code')
 	@UseGuards(ConfirmationAuthGuard)
 	@ApiOperation({ summary: 'Обновить проверочный код для входа в систему' })
-	@ApiResponse({ status: 200, description: 'Confirmation code has been successfully updated'})
-	@ApiResponse({ status: 401, description: 'You are not authorization' })
-	async updateConfirmationSignInCode(@SessionInfo() session: SessionInfoDto) {
+	async updateConfirmationSignInCode(@SessionInfo() session: ConfirmationSessionInfoDto) {
 		this.authService.updateConfirmationCode(
 			session.email,
 			session.id,
@@ -98,9 +90,7 @@ export class AuthController {
 	@Get('sign-up/update-confirmation-code')
 	@UseGuards(ConfirmationAuthGuard)
 	@ApiOperation({ summary: 'Обновить проверочный код для регистрации' })
-	@ApiResponse({ status: 200, description: 'Confirmation code has been successfully updated'})
-	@ApiResponse({ status: 401, description: 'You are not authorization' })
-	async updateConfirmationSignUpCode(@SessionInfo() session: SessionInfoDto) {
+	async updateConfirmationSignUpCode(@SessionInfo() session: ConfirmationSessionInfoDto) {
 		this.authService.updateConfirmationCode(
 			session.email,
 			session.id,
@@ -111,12 +101,9 @@ export class AuthController {
 	@Post('sign-up/confirmation')
 	@UseGuards(ConfirmationAuthGuard)
 	@ApiOperation({ summary: 'Подтвердить регистрацию' })
-	@ApiResponse({ status: 201, description: 'You have successfully registered'})
-	@ApiResponse({ status: 400, description: 'The user does not exist or invalid confirmation code'})
-	@ApiResponse({ status: 401, description: 'You are not authorization' })
 	async confirmationSignUp(
 		@Res({ passthrough: true }) res: Response,
-		@SessionInfo() session: SessionInfoDto,
+		@SessionInfo() session: ConfirmationSessionInfoDto,
 		@Body() body: ConfirmationBodyDto,
 	) {
 		const { accessToken } = await this.authService.confirmationSignUp(
@@ -131,12 +118,9 @@ export class AuthController {
 	@UseGuards(ConfirmationAuthGuard)
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({ summary: 'Подтвердить вход в систему' })
-	@ApiResponse({ status: 200, description: 'You have successfully logged in'})
-	@ApiResponse({ status: 400, description: 'The user does not exist or invalid confirmation code'})
-	@ApiResponse({ status: 401, description: 'You are not authorization' })
 	async confirmationSingIn(
 		@Res({ passthrough: true }) res: Response,
-		@SessionInfo() session: SessionInfoDto,
+		@SessionInfo() session: ConfirmationSessionInfoDto,
 		@Body() body: ConfirmationBodyDto,
 	) {
 		const { accessToken } = await this.authService.confirmationSignIn(

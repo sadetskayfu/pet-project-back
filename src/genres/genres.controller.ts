@@ -8,10 +8,14 @@ import {
 	Param,
 	Post,
 	Put,
+    UseGuards,
 } from '@nestjs/common';
 import { GenreService } from './genres.service';
 import { CreateGenreBodyDto, GenreDto, UpdateGenreBodyDto } from './dto';
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
 @ApiTags('Genres')
 @Controller('genres')
@@ -20,56 +24,51 @@ export class GenreController {
 
 	@Get()
     @ApiOperation({ summary: 'Получить все жанры' })
-    @ApiOkResponse({ 
-        description: 'List of all genres retrieved successfully',
+    @ApiResponse({ 
+        status: 200,
         type: [GenreDto] 
     })
-	async getGenres() {
-		return this.genreService.getGenres();
+	async getAll() {
+		return this.genreService.getAll();
 	}
 
 	@Post()
     @ApiOperation({ summary: 'Создать новый жанр' })
-    @ApiCreatedResponse({
-        description: 'Genre has been successfully created',
-        type: GenreDto
+    @ApiResponse({
+        status: 201,
+        type: [GenreDto]
     })
-    @ApiBadRequestResponse({
-        description: 'Invalid input data or genre with this name already existing.'
-    })
-	async createGenre(@Body() body: CreateGenreBodyDto) {
-		return this.genreService.createGenre(body.name);
+    @Roles('admin')
+    @UseGuards(RolesGuard, AuthGuard)
+	async create(@Body() body: CreateGenreBodyDto) {
+		return this.genreService.create(body.name);
 	}
 
 	@Delete(':id')
-    @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Удалить жанра по ID' })
-    @ApiOkResponse({
-        description: 'Genre has been successfully deleted',
-        type: GenreDto
+    @ApiResponse({
+        status: 200,
+        type: [GenreDto]
     })
-    @ApiNotFoundResponse({
-        description: 'Genre with given ID not found'
-    })
-	async deleteGenre(@Param('id') id: string) {
+    @HttpCode(HttpStatus.OK)
+    @Roles('admin')
+    @UseGuards(RolesGuard, AuthGuard)
+	async delete(@Param('id') id: string) {
 		const numberId = parseInt(id);
 
-		return this.genreService.deleteGenre(numberId);
+		return this.genreService.delete(numberId);
 	}
 
 	@Put()
     @ApiOperation({ summary: 'Обновить жанр по ID' })
-    @ApiOkResponse({
-        description: 'Genre has been successfully updated',
-        type: GenreDto
+    @ApiResponse({
+        status: 200,
+        type: [GenreDto]
     })
-    @ApiBadRequestResponse({
-        description: 'Invalid input data or genre with this name already existing'
-    })
-    @ApiNotFoundResponse({
-        description: 'Genre with given ID not found'
-    })
-	async updateGenre(@Body() body: UpdateGenreBodyDto) {
-		return this.genreService.updateGenre(body.id, body.name);
+    @HttpCode(HttpStatus.OK)
+    @Roles('admin')
+    @UseGuards(RolesGuard, AuthGuard)
+	async update(@Body() body: UpdateGenreBodyDto) {
+		return this.genreService.update(body.id, body.name);
 	}
 }

@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 import { Request } from 'express';
 import { CookieService } from './cookie.service';
 import { JwtService } from '@nestjs/jwt';
-import { SessionInfo } from './types';
+import { ConfirmationSessionInfo } from './types';
 
 @Injectable()
 export class ConfirmationAuthGuard implements CanActivate {
@@ -25,14 +25,17 @@ export class ConfirmationAuthGuard implements CanActivate {
 		}
 
 		try {
-			const sessionInfo: SessionInfo = this.jwtService.verify(token, {
-				secret: process.env.JWT_SECRET,
-			});
+			const sessionInfo: ConfirmationSessionInfo = this.jwtService.verify(
+				token,
+				{
+					secret: process.env.JWT_SECRET,
+				},
+			);
 
-			if(sessionInfo.isConfirmed) {
-				throw new Error
+			if (sessionInfo.isConfirmed) {
+				throw new Error();
 			}
-			
+
 			request['session'] = sessionInfo;
 		} catch {
 			throw new UnauthorizedException();

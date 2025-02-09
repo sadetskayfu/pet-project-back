@@ -29,8 +29,8 @@ export class AuthGuard implements CanActivate {
 				secret: process.env.JWT_SECRET,
 			});
 
-			if(!sessionInfo.isConfirmed) {
-				throw new UnauthorizedException();
+			if (!sessionInfo.isConfirmed) {
+				throw new Error();
 			}
 
 			request['session'] = sessionInfo;

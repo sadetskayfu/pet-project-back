@@ -1,27 +1,54 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { CountryService } from 'src/countries/countries.service';
 import { DbService } from 'src/db/db.service';
+import { RoleService } from 'src/roles/roles.service';
 
 @Injectable()
 export class UserService {
-	constructor(private db: DbService) {}
+	private readonly logger = new Logger(UserService.name);
+
+	constructor(
+		private db: DbService,
+		private roleService: RoleService,
+		private countryService: CountryService,
+	) {}
 
 	async findByEmail(email: string) {
-		return this.db.user.findFirst({
+		this.logger.log(`Finding user by email '${email}'`);
+
+		const user = await this.db.user.findFirst({
 			where: { email },
 			include: { roles: true },
 		});
+
+		this.logger.log(`Found user: ${JSON.stringify(user)}`);
+
+		return user;
 	}
 
 	async findById(id: number) {
-		return this.db.user.findUnique({
+		this.logger.log(`Finding user by ID '${id}'`);
+
+		const user = await this.db.user.findUnique({
 			where: {
-				id
-			}
-		})
+				id,
+			},
+			include: {
+				roles: true,
+			},
+		});
+
+		this.logger.log(`Found user: ${JSON.stringify(user)}`);
+
+		return user;
 	}
 
 	async addRole(userId: number, roleId: number) {
-		return this.db.user.update({
+		this.logger.log(
+			`Adding role with ID '${roleId}' to user with ID '${userId}'`,
+		);
+
+		const user = await this.db.user.update({
 			where: {
 				id: userId,
 			},
@@ -31,10 +58,16 @@ export class UserService {
 				},
 			},
 		});
+
+		this.logger.log(`Role added to user: ${JSON.stringify(user)}`);
 	}
 
 	async removeRole(userId: number, roleId: number) {
-		return this.db.user.update({
+		this.logger.log(
+			`Removing role with ID '${roleId}' from user with ID '${userId}'`,
+		);
+
+		const user = await this.db.user.update({
 			where: {
 				id: userId,
 			},
@@ -46,18 +79,29 @@ export class UserService {
 				},
 			},
 		});
+
+		this.logger.log(`Role removed: ${JSON.stringify(user)}`);
 	}
 
-	async updateConfirmationCode(id: number, code: string) {
-        this.db.unconfirmedUser.update({
-            where: {
-                id
-            },
-            data: {
-                confirmationCode: code
-            }
-        })
-    }
+	async updateConfirmationCode(
+		id: number,
+		code: string | null,
+		codeExpiresAt: Date | null,
+	) {
+		this.logger.log(`Updating confirmation code from user with ID '${id}'`);
+
+		const user = await this.db.user.update({
+			where: {
+				id,
+			},
+			data: {
+				confirmationCode: code,
+				confirmationCodeExpiresAt: codeExpiresAt,
+			},
+		});
+
+		this.logger.log(`Confirmation code updated: ${JSON.stringify(user)}`);
+	}
 
 	async create(
 		email: string,
@@ -65,19 +109,39 @@ export class UserService {
 		salt: string,
 		countryCode: string,
 	) {
-		const newUser = await this.db.user.create({
+		this.logger.log(`Creating user with email '${email}'`);
+
+		const role = await this.roleService.findByName('user');
+
+		if (!role) {
+			throw new NotFoundException(`Role 'user' does not exist`);
+		}
+
+		const country = await this.countryService.findByCode(countryCode);
+
+		const user = await this.db.user.create({
 			data: {
 				email,
 				hash,
 				salt,
 				country: {
 					connect: {
-						code: countryCode,
+						code: country.code,
+					},
+				},
+				roles: {
+					connect: {
+						id: role.id,
 					},
 				},
 			},
+			include: {
+				roles: true,
+			},
 		});
 
-		return newUser;
+		this.logger.log(`User created: ${JSON.stringify(user)}`);
+
+		return user;
 	}
 }

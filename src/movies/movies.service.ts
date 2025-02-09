@@ -11,11 +11,10 @@ export class MovieService {
 		private genreService: GenreService,
 	) {}
 
-	async createMovie(data: CreateMovieDto) {
+	async create(data: CreateMovieDto) {
 		const { title, releaseDate, countryCode, duration, genreIds } = data;
 
-		// Проверка на наличие всех жанров
-		const genres = await this.genreService.getGenresById(genreIds);
+		const genres = await this.genreService.findManyByIds(genreIds);
 
 		if (genres.length !== genreIds.length) {
 			throw new BadRequestException('One or more genres not found.');
@@ -113,7 +112,7 @@ export class MovieService {
 								},
 							}
 						: {},
-					countries ? { countryCode: { in: countries } } : {},
+					countries ? { countryCode: { in: [] } } : {},
 				],
 			},
 			include: {

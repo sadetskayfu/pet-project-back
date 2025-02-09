@@ -35,8 +35,6 @@ export class MovieController {
 	}
 
 	@ApiOperation({ summary: 'Получить фильмы' })
-	@ApiResponse({ status: 200, description: 'Movies found successfully.' })
-	@ApiResponse({ status: 400, description: 'Incorrect request parameters.' })
 	@Get('filters')
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async getMovies(@Query() filters: MovieFiltersDto) {

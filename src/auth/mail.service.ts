@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
 	private transporter;
+	private readonly logger = new Logger(MailService.name)
 
 	constructor() {
 		this.transporter = nodemailer.createTransport({
@@ -25,10 +26,12 @@ export class MailService {
 			text: `Your confirmation code is: ${code}`,
 		};
 
+		this.logger.log(`Sending a message by email '${email}'`)
+		
 		try {
 			this.transporter.sendMail(mailOptions);
 		} catch (error) {
-			throw new Error('Failed to send email');
+			this.logger.error(`Failed to send email: ${error.message}`)
 		}
 	}
 }

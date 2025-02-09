@@ -8,27 +8,32 @@ datasource db {
 }
 
 model UnconfirmedUser {
-  id               Int      @id @default(autoincrement())
-  email            String   @unique @db.VarChar(64)
-  hash             String
-  salt             String
-  country          String   @db.VarChar(2)
-  confirmationCode String   @db.VarChar(6)
-  createdAt        DateTime @default(now())
+  id                        Int       @id @default(autoincrement())
+  email                     String    @unique @db.VarChar(64)
+  hash                      String
+  salt                      String
+  countryCode               String    @db.VarChar(2)
+  confirmationCode          String?   @db.VarChar(6)
+  confirmationCodeExpiresAt DateTime?
+  createdAt                 DateTime  @default(now())
 }
 
 model User {
-  id               Int      @id @default(autoincrement())
-  email            String   @unique @db.VarChar(64)
-  hash             String
-  salt             String
-  confirmationCode String?   @db.VarChar(6)
-  createdAt        DateTime @default(now())
-  country          Country  @relation(fields: [countryCode], references: [code])
-  countryCode      String   @unique @db.VarChar(2)
-  profile          Profile?
-  posts            Post[]
-  roles            Role[]
+  id                        Int           @id @default(autoincrement())
+  email                     String        @unique @db.VarChar(64)
+  hash                      String
+  salt                      String
+  confirmationCode          String?       @db.VarChar(6)
+  confirmationCodeExpiresAt DateTime?
+  createdAt                 DateTime      @default(now())
+  country                   Country       @relation(fields: [countryCode], references: [code])
+  countryCode               String        @db.VarChar(2)
+  profile                   Profile?
+  roles                     Role[]
+  reviews                   Review[]
+  comments                  Comment[]
+  reviewLikes               ReviewLike[]
+  commentLikes              CommentLike[]
 }
 
 model Role {
@@ -37,20 +42,63 @@ model Role {
   users User[]
 }
 
-model Profile {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
+model ReviewLike {
+  id       Int    @id @default(autoincrement())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   Int    @unique
+  review   Review @relation(fields: [reviewId], references: [id])
+  reviewId Int    @unique
 }
 
-model Post {
-  id       Int  @id @default(autoincrement())
-  author   User @relation(fields: [authorId], references: [id])
-  authorId Int
+model CommentLike {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int     @unique
+  comment   Comment @relation(fields: [commentId], references: [id])
+  commentId Int     @unique
+}
+
+model Comment {
+  id          Int           @id @default(autoincrement())
+  description String        @db.VarChar(255)
+  user        User          @relation(fields: [userId], references: [id])
+  userId      Int           @unique
+  review      Review        @relation(fields: [reviewId], references: [id])
+  reviewId    Int           @unique
+  likes       CommentLike[]
+  totalLikes  Int           @default(0)
+  isChanged   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+}
+
+model Review {
+  id            Int          @id @default(autoincrement())
+  description   String       @db.VarChar(255)
+  rating        Float
+  user          User         @relation(fields: [userId], references: [id])
+  userId        Int          @unique
+  movie         Movie        @relation(fields: [movieId], references: [id])
+  movieId       Int          @unique
+  comments      Comment[]
+  totalComments Int          @default(0)
+  likes         ReviewLike[]
+  totalLikes    Int          @default(0)
+  isChanged     Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+}
+
+model Profile {
+  id        Int       @id @default(autoincrement())
+  firstName String?   @db.VarChar(32)
+  lastName  String?   @db.VarChar(32)
+  birthDate DateTime?
+  gender    String?   @db.VarChar(5)
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int       @unique
 }
 
 model Country {
-  code   String  @id @db.VarChar(2)
+  code   String  @id @unique @db.VarChar(2)
   name   String  @unique
   users  User[]
   movies Movie[]
@@ -62,18 +110,36 @@ model Genre {
   movie MovieGenre[]
 }
 
+model Actor {
+  id        Int           @id @default(autoincrement())
+  firstName String        @db.VarChar(32)
+  lastName  String        @db.VarChar(32)
+  movies    MovieActors[]
+}
+
 model Movie {
-  id            Int          @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   title         String
   releaseData   DateTime
   releaseYear   Int
-  country       Country      @relation(fields: [countryCode], references: [code])
-  countryCode   String       @db.VarChar(2)
-  averageRating Float?       @default(0.0)
-  totalReviews  Int?         @default(0)
-  totalComments Int?         @default(0)
+  country       Country       @relation(fields: [countryCode], references: [code])
+  countryCode   String        @db.VarChar(2)
+  averageRating Float         @default(0.0)
+  totalReviews  Int           @default(0)
   duration      Int
   genres        MovieGenre[]
+  reviews       Review[]
+  actors        MovieActors[]
+}
+
+model MovieActors {
+  movieId Int
+  actorId Int
+
+  movie Movie @relation(fields: [movieId], references: [id])
+  actor Actor @relation(fields: [actorId], references: [id])
+
+  @@id([movieId, actorId])
 }
 
 model MovieGenre {

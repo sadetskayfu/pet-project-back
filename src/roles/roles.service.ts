@@ -1,56 +1,93 @@
-import { DbService } from "src/db/db.service";
-import { UserService } from "src/users/users.service";
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { DbService } from 'src/db/db.service';
+import { UserService } from 'src/users/users.service';
+import {
+	BadRequestException,
+	forwardRef,
+	Inject,
+	Injectable,
+	Logger,
+	NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class RoleService {
-    constructor(private db: DbService, private userService: UserService) {}
+	private readonly logger = new Logger(RoleService.name);
 
-    async addRoleToUserByEmail(email: string, newRole: string) {
-        const user = await this.userService.findByEmail(email)
+	constructor(
+		private db: DbService,
+		@Inject(forwardRef(() => UserService))
+		private userService: UserService,
+	) {}
 
-        if(!user) {
-            throw new NotFoundException(`User was not fount by email: ${email}`)
-        }
+	async findByName(name: string) {
+		this.logger.log(`Finding role by name '${name}'`);
 
-        const role = await this.db.role.findUnique({
-            where: {
-                name: newRole
-            }
-        })
+		const role = await this.db.role.findUnique({
+			where: {
+				name,
+			},
+		});
 
-        if(!role) {
-            throw new NotFoundException(`Role: ${newRole} does not exist`)
-        }
+		this.logger.log(`Found role: ${JSON.stringify(role)}`);
 
-        if(user.roles.find(userRole => userRole.name === role.name)) {
-            throw new BadRequestException(`User already has the role: ${role}`)
-        }
+		return role;
+	}
 
-        await this.userService.addRole(user.id, role.id)
+	async addRoleToUser(email: string, newRole: string) {
+		const user = await this.userService.findByEmail(email);
 
-        return { message: `Role "${newRole}" successfully assigned to user "${email}"` };
-    }
+		if (!user) {
+			throw new NotFoundException(
+				`User with email '${email}' was not found`,
+			);
+		}
 
-    async removeRoleFromUserByEmail(email: string, roleToRemove: string) {
-        const user = await this.userService.findByEmail(email)
+		const role = await this.findByName(newRole);
 
-        if(!user) {
-            throw new NotFoundException(`User was not fount by email: ${email}`)
-        }
+		if (!role) {
+			throw new NotFoundException(`Role '${newRole}' does not exist`);
+		}
 
-        const role = await this.db.role.findUnique({
-            where: {
-                name: roleToRemove
-            }
-        })
+		if (user.roles.find((userRole) => userRole.name === role.name)) {
+			throw new BadRequestException(
+				`User already has the role '${role}'`,
+			);
+		}
 
-        if(!role) {
-            throw new NotFoundException(`Role: ${roleToRemove} does not exist`)
-        }
+		await this.userService.addRole(user.id, role.id);
 
-        await this.userService.removeRole(user.id, role.id)
+		return {
+			message: `Role '${newRole}' successfully assigned to user '${email}'`,
+		};
+	}
 
-        return { message: `Role "${roleToRemove}" successfully removed from user "${email}"` };
-    }
+	async removeRoleFromUser(email: string, roleToRemove: string) {
+		const user = await this.userService.findByEmail(email);
+
+		if (!user) {
+			throw new NotFoundException(
+				`User with email '${email}' was not found`,
+			);
+		}
+
+		const role = await this.findByName(roleToRemove);
+
+		if (!role) {
+			throw new NotFoundException(
+				`Role '${roleToRemove}' does not exist`,
+			);
+		}
+
+		if (!(user.roles.find((userRole) => userRole.name === role.name))) {
+			throw new BadRequestException(
+				`User does not have role '${role}'`,
+			);
+		}
+
+		await this.userService.removeRole(user.id, role.id);
+
+		return {
+			message: `Role '${roleToRemove}' successfully removed from user '${email}'`,
+		};
+	}
 }
