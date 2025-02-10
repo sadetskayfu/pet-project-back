@@ -3,9 +3,6 @@ import {
 	Controller,
 	Delete,
 	Get,
-	HttpCode,
-	HttpStatus,
-	Param,
 	ParseIntPipe,
 	Post,
 	Put,
@@ -13,7 +10,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { GenreService } from './genres.service';
-import { CreateGenreDto, GenreDto, UpdateGenreDto } from './dto';
+import { CreateGenreDto, GenreResponse, UpdateGenreDto } from './dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
@@ -28,9 +25,9 @@ export class GenreController {
     @ApiOperation({ summary: 'Получить все жанры' })
     @ApiResponse({ 
         status: 200,
-        type: [GenreDto] 
+        type: [GenreResponse] 
     })
-	async getAllGenres() {
+	async getAllGenres(): Promise<GenreResponse[]> {
 		return this.genreService.getAllGenres();
 	}
 
@@ -38,11 +35,11 @@ export class GenreController {
     @ApiOperation({ summary: 'Создать новый жанр' })
     @ApiResponse({
         status: 201,
-        type: [GenreDto]
+        type: GenreResponse
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async create(@Body() body: CreateGenreDto) {
+	async create(@Body() body: CreateGenreDto): Promise<GenreResponse> {
 		return this.genreService.createGenre(body.name);
 	}
 
@@ -50,11 +47,11 @@ export class GenreController {
     @ApiOperation({ summary: 'Удалить жанра по ID' })
     @ApiResponse({
         status: 200,
-        type: [GenreDto]
+        type: GenreResponse
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async delete(@Query('id', ParseIntPipe) id: number) {
+	async delete(@Query('id', ParseIntPipe) id: number): Promise<GenreResponse> {
 		return this.genreService.deleteGenre(id);
 	}
 
@@ -62,11 +59,11 @@ export class GenreController {
     @ApiOperation({ summary: 'Обновить жанр по ID' })
     @ApiResponse({
         status: 200,
-        type: [GenreDto]
+        type: GenreResponse
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async update(@Body() body: UpdateGenreDto) {
+	async update(@Body() body: UpdateGenreDto): Promise<GenreResponse> {
 		return this.genreService.updateGenre(body.id, body.name);
 	}
 }
