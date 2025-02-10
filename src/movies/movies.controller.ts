@@ -2,18 +2,17 @@ import {
 	Body,
 	Controller,
 	Get,
+	Param,
+	ParseIntPipe,
 	Post,
 	Query,
 	UsePipes,
 	ValidationPipe,
 } from '@nestjs/common';
 import { MovieService } from './movies.service';
-import { CreateMovieDto, MovieFiltersDto } from './dto';
+import { CreateMovieDto, FilterWithPaginationDto, } from './dto';
 import {
-	ApiBadRequestResponse,
-	ApiCreatedResponse,
 	ApiOperation,
-	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -24,32 +23,33 @@ export class MovieController {
 
 	@Post()
 	@ApiOperation({ summary: 'Создать фильм' })
-	@ApiCreatedResponse({
-		description: 'Movie has been successfully created',
-	})
-	@ApiBadRequestResponse({
-		description: 'Invalid input data.',
-	})
 	async createMovie(@Body() body: CreateMovieDto) {
 		return this.movieService.createMovie(body);
 	}
 
-	@ApiOperation({ summary: 'Получить фильмы' })
-	@Get('filters')
+	@Get(':id')
+	@ApiOperation({ summary: 'Получить фильм по id' })
+	async getMovieById(@Param('id', ParseIntPipe) id: number) {
+		return this.movieService.findMovieById(id)
+	}
+
+	
+	@Get()
 	@UsePipes(new ValidationPipe({ transform: true }))
-	async getMovies(@Query() filters: MovieFiltersDto) {
-		const genreList = filters.genres?.split('+');
-		const countryList = filters.countries?.split('+');
+	@ApiOperation({ summary: 'Получить фильмы' })
+	async getMovies(@Query() params: FilterWithPaginationDto) {
+		const genreList = params.genres?.split('+');
+		const countryList = params.countries?.split('+');
 
 		const result = await this.movieService.getMovies({
-			title: filters.title,
+			title: params.title,
 			genres: genreList,
 			countries: countryList,
-			rating: filters.rating,
-			year: filters.year,
-			pageSize: filters.pageSize,
-			cursor: filters.cursor,
-			sortedBy: filters.sortedBy,
+			rating: params.rating,
+			year: params.year,
+			pageSize: params.pageSize,
+			cursor: params.cursor,
+			sortedBy: params.sortedBy,
 		});
 
 		return {

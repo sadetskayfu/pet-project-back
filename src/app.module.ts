@@ -10,6 +10,9 @@ import { ConfigModule } from '@nestjs/config';
 import authConfig from './config/auth.config';
 import { CountryModule } from './countries/countries.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ReviewModule } from './reviews/reviews.module';
+import { ReviewLikeModule } from './reviewLikes/reviewLikes.module';
+import { ActorModule } from './actors/actors.module';
 
 @Module({
 	imports: [
@@ -19,6 +22,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 		CountryModule,
 		RoleModule,
 		AuthModule,
+		ActorModule,
+		ReviewModule,
+		ReviewLikeModule,
 		ScheduleModule.forRoot(),
 		ConfigModule.forRoot({
 			isGlobal: true,

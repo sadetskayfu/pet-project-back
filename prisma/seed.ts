@@ -33,7 +33,35 @@ async function seedRoles() {
 		skipDuplicates: true,
 	});
 
-  console.log('Таблица ролей успешно заполнена!');
+	console.log('Таблица ролей успешно заполнена!');
+}
+
+async function seedGenres() {
+	await prisma.genre.createMany({
+		data: [
+			{
+				name: 'action',
+			},
+			{
+				name: 'adventure',
+			},
+			{
+				name: 'comedy',
+			},
+			{
+				name: 'drama',
+			},
+			{
+				name: 'horror',
+			},
+			{
+				name: 'triller',
+			},
+		],
+		skipDuplicates: true,
+	});
+
+	console.log('Таблица ролей успешно заполнена!');
 }
 
 seedCountries()
@@ -46,6 +74,15 @@ seedCountries()
 	});
 
 seedRoles()
+	.catch((e) => {
+		console.error(e);
+		process.exit(1);
+	})
+	.finally(async () => {
+		await prisma.$disconnect();
+	});
+
+seedGenres()
 	.catch((e) => {
 		console.error(e);
 		process.exit(1);

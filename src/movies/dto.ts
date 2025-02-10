@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
 	IsArray,
 	IsDateString,
@@ -12,7 +12,7 @@ import {
     Min,
 } from 'class-validator';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
-import { Cursor } from './types';
+import { IsHalfStep } from 'src/decorators/isHalfStep.decorator';
 
 export class CreateMovieDto {
     @ApiProperty({example: 'Avatar' })
@@ -47,18 +47,24 @@ export class CreateMovieDto {
 	genreIds: number[];
 }
 
-export class MovieFiltersDto {
-    @ApiProperty({ required: false, example: 'Avatar' })
+export class Cursor {
+    id: number
+    rating: number
+    releaseYear: number
+}
+
+export class FilterWithPaginationDto {
+    @ApiProperty({ required: false})
     @IsOptional()
     @IsString()
     title?: string;
   
-    @ApiProperty({ required: false, description: 'Жанры (разделенные "+")', example: 'fantasy' })
+    @ApiProperty({ required: false, description: 'Жанры (разделенные "+")', example: 'fantasy+action' })
     @IsOptional()
     @IsString()
     genres?: string;
   
-    @ApiProperty({ required: false, description: 'Страны (разделенные "+")', example: 'US' })
+    @ApiProperty({ required: false, description: 'Страны (разделенные "+")', example: 'US+RU' })
     @IsOptional()
     @IsString()
     countries?: string;
@@ -78,7 +84,7 @@ export class MovieFiltersDto {
     @Type(() => Number)
     rating?: number;
   
-    @ApiProperty({ required: false, description: 'Курсор для пагинации' })
+    @ApiProperty({ required: false})
     @IsOptional()
     cursor?: Cursor;
   
@@ -89,8 +95,8 @@ export class MovieFiltersDto {
     @Type(() => Number)
     pageSize: number = 40;
   
-    @ApiProperty({ required: false,enum: ['averageRating', 'releaseYear'] })
+    @ApiProperty({ required: false, enum: ['rating', 'releaseYear'] })
     @IsOptional()
-    @IsIn(['averageRating', 'releaseYear'])
-    sortedBy?: 'averageRating' | 'releaseYear';
+    @IsIn(['rating', 'releaseYear'])
+    sortedBy?: 'rating' | 'releaseYear';
   }

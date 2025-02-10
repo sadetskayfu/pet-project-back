@@ -6,12 +6,14 @@ import {
 	HttpCode,
 	HttpStatus,
 	Param,
+	ParseIntPipe,
 	Post,
 	Put,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 import { GenreService } from './genres.service';
-import { CreateGenreBodyDto, GenreDto, UpdateGenreBodyDto } from './dto';
+import { CreateGenreDto, GenreDto, UpdateGenreDto } from './dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
@@ -28,8 +30,8 @@ export class GenreController {
         status: 200,
         type: [GenreDto] 
     })
-	async getAll() {
-		return this.genreService.getAll();
+	async getAllGenres() {
+		return this.genreService.getAllGenres();
 	}
 
 	@Post()
@@ -39,24 +41,21 @@ export class GenreController {
         type: [GenreDto]
     })
     @Roles('admin')
-    @UseGuards(RolesGuard, AuthGuard)
-	async create(@Body() body: CreateGenreBodyDto) {
-		return this.genreService.create(body.name);
+    @UseGuards(AuthGuard, RolesGuard)
+	async create(@Body() body: CreateGenreDto) {
+		return this.genreService.createGenre(body.name);
 	}
 
-	@Delete(':id')
+	@Delete()
     @ApiOperation({ summary: 'Удалить жанра по ID' })
     @ApiResponse({
         status: 200,
         type: [GenreDto]
     })
-    @HttpCode(HttpStatus.OK)
     @Roles('admin')
-    @UseGuards(RolesGuard, AuthGuard)
-	async delete(@Param('id') id: string) {
-		const numberId = parseInt(id);
-
-		return this.genreService.delete(numberId);
+    @UseGuards(AuthGuard, RolesGuard)
+	async delete(@Query('id', ParseIntPipe) id: number) {
+		return this.genreService.deleteGenre(id);
 	}
 
 	@Put()
@@ -65,10 +64,9 @@ export class GenreController {
         status: 200,
         type: [GenreDto]
     })
-    @HttpCode(HttpStatus.OK)
     @Roles('admin')
-    @UseGuards(RolesGuard, AuthGuard)
-	async update(@Body() body: UpdateGenreBodyDto) {
-		return this.genreService.update(body.id, body.name);
+    @UseGuards(AuthGuard, RolesGuard)
+	async update(@Body() body: UpdateGenreDto) {
+		return this.genreService.updateGenre(body.id, body.name);
 	}
 }

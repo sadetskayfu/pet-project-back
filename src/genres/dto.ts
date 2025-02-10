@@ -1,27 +1,16 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString, Min } from "class-validator";
 
-export class CreateGenreBodyDto {
-    @ApiProperty({
-        example: 'action',
-    })
+export class CreateGenreDto {
+    @ApiProperty()
     @IsNotEmpty()
     @IsString()
     name: string
 }
 
-export class UpdateGenreBodyDto {
-    @ApiProperty({
-        example: 'action',
-    })
-    @IsNotEmpty()
-    @IsString()
-    name: string
-
-    @ApiProperty({
-        example: 1,
-    })
-    @IsNotEmpty()
+export class UpdateGenreDto extends CreateGenreDto {
+    @ApiProperty()
+    @Min(1)
     @IsNumber()
     id: number
 }

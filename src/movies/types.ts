@@ -1,7 +1,7 @@
-export type MovieSortedBy = 'averageRating' | 'releaseYear'
+export type MovieSortedBy = 'rating' | 'releaseYear'
 
-export type Cursor = {
-    id: number;
-    averageRating?: number;
-    releaseYear?: number;
-};
+// export type Cursor = {
+//     id: number;
+//     rating?: number;
+//     releaseYear?: number;
+// };

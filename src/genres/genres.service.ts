@@ -12,7 +12,7 @@ export class GenreService {
 
 	constructor(private db: DbService) {}
 
-	async findManyByIds(ids: number[]) {
+	async findGenresByIds(ids: number[]) {
 		this.logger.log(`Finding genres by IDs: ${JSON.stringify(ids)}`);
 
 		const genres = await this.db.genre.findMany({
@@ -26,7 +26,7 @@ export class GenreService {
 		return genres;
 	}
 
-	async findById(id: number) {
+	async findGenreById(id: number) {
 		this.logger.log(`Finding genre by ID "${id}"`);
 
 		const genre = await this.db.genre.findUnique({
@@ -44,7 +44,7 @@ export class GenreService {
 		return genre;
 	}
 
-	async findByName(name: string) {
+	async findGenreByName(name: string) {
 		this.logger.log(`Finding genre by name '${name}'`);
 
 		const genre = await this.db.genre.findUnique({
@@ -58,9 +58,9 @@ export class GenreService {
 		return genre;
 	}
 
-	async create(genreName: string) {
+	async createGenre(genreName: string) {
 		const name = genreName.toLowerCase();
-		const existingGenre = await this.findByName(name);
+		const existingGenre = await this.findGenreByName(name);
 
 		if (existingGenre) {
 			throw new BadRequestException(`Genre '${name}' already exists`);
@@ -79,8 +79,8 @@ export class GenreService {
 		return genre;
 	}
 
-	async delete(id: number) {
-		await this.findById(id);
+	async deleteGenre(id: number) {
+		await this.findGenreById(id);
 
 		this.logger.log(`Deleting genre by ID '${id}'`);
 
@@ -95,21 +95,11 @@ export class GenreService {
 		return genre;
 	}
 
-	async getAll() {
-		this.logger.log('Getting all genres');
-
-		const genres = await this.db.genre.findMany();
-
-		this.logger.log(`Resulting genres: ${JSON.stringify(genres)}`);
-
-		return genres;
-	}
-
-	async update(id: number, genreName: string) {
-		await this.findById(id);
+	async updateGenre(id: number, genreName: string) {
+		await this.findGenreById(id);
 
 		const name = genreName.toLowerCase();
-		const existingGenre = await this.findByName(name);
+		const existingGenre = await this.findGenreByName(name);
 
 		if (existingGenre && existingGenre.id !== id) {
 			throw new BadRequestException(`Genre '${name}' already exists`);
@@ -129,5 +119,15 @@ export class GenreService {
 		this.logger.log(`Genre updated: ${JSON.stringify(genre)}`);
 
 		return genre;
+	}
+
+	async getAllGenres() {
+		this.logger.log('Getting all genres');
+
+		const genres = await this.db.genre.findMany();
+
+		this.logger.log(`Resulting genres: ${JSON.stringify(genres)}`);
+
+		return genres;
 	}
 }
