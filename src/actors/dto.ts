@@ -23,7 +23,7 @@ export class PaginationMeta {
     totalPages: number
 }
 
-export class ActorResponse {
+export class ActorForMovieResponse {
     @ApiProperty({
         example: 1
     })
@@ -37,8 +37,10 @@ export class ActorResponse {
     @ApiProperty({
         example: 'DiCaprio'
     })
-    lastName: string
+    lastName: string 
+}
 
+export class ActorResponse extends ActorForMovieResponse {
     @ApiProperty({
         example: '2023-03-23T00:00:00.000Z'
     })

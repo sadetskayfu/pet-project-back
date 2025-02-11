@@ -5,7 +5,7 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
-import { CreateMovieDto, FilterDto, SortingDto, PaginationDto, UpdateMovieDto, MovieResponse, GetMoviesResponse } from './dto';
+import { CreateMovieDto, FilterDto, SortingDto, PaginationDto, UpdateMovieDto, MovieResponse} from './dto';
 import { GenreService } from 'src/genres/genres.service';
 import { ActorService } from 'src/actors/actors.service';
 
@@ -70,8 +70,9 @@ export class MovieService {
 							}
 						}
 					}
-				}
-			}
+				},
+				country: true
+			},
 		});
 
 		this.logger.log(`Found movie: ${JSON.stringify(movie)}`);
@@ -80,7 +81,20 @@ export class MovieService {
 			throw new NotFoundException(`Movie with ID '${id}' does not exist`);
 		}
 
-		return movie;
+		const transformedMovie = {
+			...movie,
+			genres: movie.genres.map((g) => ({
+				id: g.genre.id,
+				name: g.genre.name
+			})),
+			actors: movie.actors.map((a) => ({
+				id: a.actor.id,
+				firstName: a.actor.firstName,
+				lastName: a.actor.lastName
+			}))
+		}
+
+		return transformedMovie;
 	}
 
 	async updateRating(
@@ -115,6 +129,10 @@ export class MovieService {
 				rating: newRating,
 				totalReviews,
 			},
+			select: {
+				rating: true,
+				totalReviews: true
+			}
 		});
 
 		this.logger.log(`Movie rating updated: ${JSON.stringify(updatedMovie)}`)
@@ -188,10 +206,23 @@ export class MovieService {
 			},
 		});
 
-		return movie;
+		const transformedMovie = {
+			...movie,
+			genres: movie.genres.map((g) => ({
+				id: g.genre.id,
+				name: g.genre.name
+			})),
+			actors: movie.actors.map((a) => ({
+				id: a.actor.id,
+				firstName: a.actor.firstName,
+				lastName: a.actor.lastName
+			}))
+		}
+
+		return transformedMovie;
 	}
 
-	async updateMovie(data: UpdateMovieDto) {
+	async updateMovie(data: UpdateMovieDto): Promise<MovieResponse> {
 		const { id, title, description, ageLimit, cardImgUrl, releaseDate, countryCode, duration, genreIds, actorIds } = data;
 
 		const genres = await this.genreService.findManyByIds(genreIds);
@@ -274,7 +305,20 @@ export class MovieService {
 			},
 		});
 
-		return updatedMovie;
+		const transformedMovie = {
+			...updatedMovie,
+			genres: updatedMovie.genres.map((g) => ({
+				id: g.genre.id,
+				name: g.genre.name
+			})),
+			actors: updatedMovie.actors.map((a) => ({
+				id: a.actor.id,
+				firstName: a.actor.firstName,
+				lastName: a.actor.lastName
+			}))
+		}
+
+		return transformedMovie;
 	}
 
 	async deleteMovie(id: number) {
@@ -298,7 +342,7 @@ export class MovieService {
 
 	async getMovies(
 		filter: FilterDto, pagination: PaginationDto, sorting: SortingDto
-	): Promise<GetMoviesResponse> {
+	) {
 		const {title, genres, countries, rating, year} = filter
 		const {limit = 40, cursorId, cursorRating, cursorReleaseYear} = pagination
 		const {order = 'desc', sort} = sorting
@@ -357,7 +401,7 @@ export class MovieService {
 						genre: {
 							select: {
 								id: true,
-								name: true
+								name:  true
 							}
 						}
 					}
@@ -369,6 +413,14 @@ export class MovieService {
 			},
 			orderBy: orderBy,
 		});
+
+		const transformedMovies = movies.map((movie) => ({
+			...movie,
+			genres: movie.genres.map((g) => ({
+				id: g.genre.id,
+				name: g.genre.name
+			})),
+		}));
 
 		const nextCursor =
 			movies.length === limit
@@ -385,7 +437,7 @@ export class MovieService {
 				: null;
 
 		return {
-			movies,
+			transformedMovies,
 			nextCursor,
 		};
 	}

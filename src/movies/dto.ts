@@ -11,6 +11,7 @@ import {
     Max,
     Min,
 } from 'class-validator';
+import { ActorForMovieResponse } from 'src/actors/dto';
 import { CountryResponse } from 'src/countries/dto';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
 import { GenreResponse } from 'src/genres/dto';
@@ -32,7 +33,7 @@ export class CursorResponse {
     releaseYear?: number
 }
 
-export class MovieResponse {
+export class MovieForCardResponse {
     @ApiProperty({
         example: 1
     })
@@ -79,16 +80,45 @@ export class MovieResponse {
     cardImgUrl: string
 }
 
+export class MovieResponse extends MovieForCardResponse {
+    @ApiProperty({
+        type: [ActorForMovieResponse]
+    })
+    actors: ActorForMovieResponse[]
+
+    @ApiProperty({
+        example: 'Description...'
+    })
+    description: string
+
+    @ApiProperty({
+        example: 18
+    })
+    ageLimit: number
+
+    @ApiProperty({
+        example: '2023-03-23T00:00:00.000Z'
+    })
+    releaseData: Date
+}
+
 export class GetMoviesResponse {
     @ApiProperty({
-        type: [MovieResponse]
+        type: [MovieForCardResponse]
     })
-    data: MovieResponse[]
+    data: MovieForCardResponse[]
 
     @ApiProperty({
         type: CursorResponse
     })
     nextCursor: CursorResponse | null
+}
+
+export class DeleteMovieResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
 }
 
 export class CreateMovieDto {
