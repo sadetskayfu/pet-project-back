@@ -5,7 +5,7 @@ import {
 	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { CountryDto } from './dto';
+import { CountryResponse } from './dto';
 
 @ApiTags('Countries')
 @Controller('countries')
@@ -16,9 +16,9 @@ export class CountryController {
 	@ApiOperation({ summary: 'Получить страны' })
     @ApiResponse({
         status: 200,
-        type: [CountryDto]
+        type: [CountryResponse]
     })
-	async getAll() {
-		return this.countryService.getAll();
+	async getAllCountries(): Promise<CountryResponse[]> {
+		return this.countryService.getAllCountries();
 	}
 }

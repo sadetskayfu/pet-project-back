@@ -117,7 +117,7 @@ export class UserService {
 			throw new NotFoundException(`Role 'user' does not exist`);
 		}
 
-		const country = await this.countryService.findByCode(countryCode);
+		const country = await this.countryService.findCountryByCode(countryCode);
 
 		const user = await this.db.user.create({
 			data: {

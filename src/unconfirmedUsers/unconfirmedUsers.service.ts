@@ -78,7 +78,7 @@ export class UnconfirmedUserService {
 		code: string,
 		codeExpiresAt: Date,
 	) {
-		await this.countryService.findByCode(countryCode)
+		await this.countryService.findCountryByCode(countryCode)
 
 		this.logger.log(`Creating user with email '${email}'`);
 

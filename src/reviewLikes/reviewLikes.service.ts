@@ -7,21 +7,52 @@ export class ReviewLikeService {
 
     constructor(private db: DbService){}
 
+    async findUserLike(userId: number, reviewId: number) {
+        this.logger.log(`Finding user like in review with ID '${reviewId}'`)
+
+        const like = await this.db.reviewLike.findUnique({
+            where: {
+                userId,
+                reviewId
+            },
+            select: {
+                id: true
+            }
+        })
+
+        this.logger.log(`Found user like: ${JSON.stringify(like)}`)
+
+        return like
+    }
+
+    async findLikedReviews(userId: number, reviewIds: number[]) {
+        this.logger.log(`Finding liked review`)
+
+        const likedReviews = await this.db.reviewLike.findMany({
+            where: {
+                userId,
+                reviewId: { in: reviewIds }
+            },
+            select: {
+                reviewId: true
+            }
+        })
+
+        this.logger.log(`Found liked reviews: ${JSON.stringify(likedReviews)}`)
+
+        return likedReviews
+    }
+
     async addLike(userId: number, reviewId: number) {
         this.logger.log(`Adding like to review with ID '${reviewId}'`)
 
         const like = await this.db.reviewLike.create({
             data: {
-                user: {
-                    connect: {
-                        id: userId
-                    }
-                },
-                review: {
-                    connect: {
-                        id: reviewId
-                    }
-                }
+                userId,
+                reviewId
+            },
+            select: {
+                id: true
             }
         })
 
@@ -37,6 +68,9 @@ export class ReviewLikeService {
             where: {
                 userId,
                 reviewId
+            },
+            select: {
+                id: true
             }
         })
 

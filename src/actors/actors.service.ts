@@ -5,7 +5,6 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
-import { ActorResponse } from './dto';
 
 @Injectable()
 export class ActorService {

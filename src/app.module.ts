@@ -11,8 +11,8 @@ import authConfig from './config/auth.config';
 import { CountryModule } from './countries/countries.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReviewModule } from './reviews/reviews.module';
-import { ReviewLikeModule } from './reviewLikes/reviewLikes.module';
 import { ActorModule } from './actors/actors.module';
+import { ReviewLikeModule } from './reviewLikes/reviewLikes.module';
 
 @Module({
 	imports: [

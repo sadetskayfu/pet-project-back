@@ -39,7 +39,7 @@ export class GenreController {
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async create(@Body() body: CreateGenreDto): Promise<GenreResponse> {
+	async createGenre(@Body() body: CreateGenreDto): Promise<GenreResponse> {
 		return this.genreService.createGenre(body.name);
 	}
 
@@ -51,7 +51,7 @@ export class GenreController {
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async delete(@Query('id', ParseIntPipe) id: number): Promise<GenreResponse> {
+	async deleteGenre(@Query('id', ParseIntPipe) id: number): Promise<GenreResponse> {
 		return this.genreService.deleteGenre(id);
 	}
 
@@ -63,7 +63,7 @@ export class GenreController {
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async update(@Body() body: UpdateGenreDto): Promise<GenreResponse> {
+	async updateGenre(@Body() body: UpdateGenreDto): Promise<GenreResponse> {
 		return this.genreService.updateGenre(body.id, body.name);
 	}
 }

@@ -3,7 +3,6 @@ import {
 	Controller,
 	Delete,
 	Get,
-	Logger,
 	Param,
 	ParseIntPipe,
 	Post,
@@ -14,30 +13,37 @@ import {
 	ValidationPipe,
 } from '@nestjs/common';
 import { ReviewService } from './reviews.service';
-import { CreateReviewDto, PaginationDto, UpdateReviewDto } from './dto';
-import { ApiTags } from '@nestjs/swagger';
+import { CreateReviewDto, DeletedReviewResponse, GetReviewsForMovieResponse, OrderByDto, PaginationDto, ReviewResponse, UpdateReviewDto } from './dto';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SessionInfo } from 'src/auth/session-info.decorator';
 import { SessionInfoDto } from 'src/auth/dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 
 @ApiTags('Reviews')
-@Controller('movies/:movieId/reviews')
+@Controller('reviews')
 export class ReviewController {
-    private readonly logger = new Logger(ReviewController.name);
-
 	constructor(private reviewService: ReviewService) {}
 
 	@Get()
+	@ApiOperation({
+		summary: 'Получить отзывы к фильму'
+	})
+	@ApiResponse({
+		status: 200,
+		type: GetReviewsForMovieResponse
+	})
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async getReviewsForMovie(
-		@Param('movieId', ParseIntPipe) id: number,
-		@Query() paginationDto: PaginationDto,
-	) {
+		@Query('movieId', ParseIntPipe) id: number,
+		@Query() pagination: PaginationDto,
+		@Query() orderBy: OrderByDto
+	): Promise<GetReviewsForMovieResponse> {
 		const { reviews, nextCursor } =
 			await this.reviewService.getReviewsForMovie(
 				id,
-				paginationDto.pageSize,
-				paginationDto.cursor,
+				pagination.limit,
+				pagination.cursor,
+				orderBy.orderBy,
 			);
 
 		return {
@@ -47,11 +53,19 @@ export class ReviewController {
 	}
 
 	@Post()
-	async createReview(@Body() body: CreateReviewDto) {
-		const { userId, movieId, rating, message } = body;
+	@ApiOperation({
+		summary: 'Оставить отзыв'
+	})
+	@ApiResponse({
+		status: 201,
+		type: ReviewResponse
+	})
+	@UseGuards(AuthGuard)
+	async createReview(@Body() body: CreateReviewDto, @SessionInfo() session: SessionInfoDto): Promise<ReviewResponse> {
+		const { movieId, rating, message } = body;
 
 		return this.reviewService.createReview(
-			userId,
+			session.id,
 			movieId,
 			rating,
 			message,
@@ -59,25 +73,39 @@ export class ReviewController {
 	}
 
 	@Put()
-	async updateReview(@Body() body: UpdateReviewDto) {
+	@ApiOperation({
+		summary: 'Обновить отзыв'
+	})
+	@ApiResponse({
+		status: 200,
+		type: ReviewResponse
+	})
+	@UseGuards(AuthGuard)
+	async updateReview(@Body() body: UpdateReviewDto, @SessionInfo() session: SessionInfoDto): Promise<ReviewResponse> {
 		const { reviewId, rating, message } = body;
 
-		return this.reviewService.updateReview(reviewId, rating, message);
+		return this.reviewService.updateReview(session.id, reviewId, rating, message);
 	}
 
-	@Delete(':id')
-	async deleteReview(@Param('id', ParseIntPipe) id: number) {
-		return this.reviewService.deleteReview(id);
-	}
-
-	@Post('likes/:reviewId')
+	@Delete()
+	@ApiOperation({
+		summary: 'Удалить отзыв'
+	})
+	@ApiResponse({
+		status: 200,
+		type: DeletedReviewResponse
+	})
 	@UseGuards(AuthGuard)
-	async addLikeToReview(
-		@Param('reviewId', ParseIntPipe) reviewId: number,
+	async deleteReview(@Query('id', ParseIntPipe) id: number, @SessionInfo() session: SessionInfoDto): Promise<DeletedReviewResponse> {
+		return this.reviewService.deleteReview(session.id, id);
+	}
+
+	@Put('likes')
+	@UseGuards(AuthGuard)
+	async toggleUserLike(
+		@Query('reviewId', ParseIntPipe) reviewId: number,
 		@SessionInfo() session: SessionInfoDto,
 	) {
-        this.logger.log(session.id)
-
-		return this.reviewService.addLikeToReview(session.id, reviewId);
+		return this.reviewService.toggleUserLike(session.id, reviewId);
 	}
 }

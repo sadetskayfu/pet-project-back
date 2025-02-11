@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
 
-export class CountryDto {
+export class CountryResponse {
     @ApiProperty({
         example: 'BY'
     })

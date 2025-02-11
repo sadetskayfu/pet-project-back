@@ -1,7 +1,18 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsInt, IsNumber, IsOptional, IsString, Length, Max, Min } from "class-validator";
+import { IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Max, Min } from "class-validator";
 import { IsHalfStep } from "src/decorators/isHalfStep.decorator";
+
+export class OrderByDto {
+    @ApiProperty({
+        required: false,
+        default: 'desc',
+        enum: ['desc', 'asc']
+    })
+    @IsOptional()
+    @IsIn(['desc', 'asc'])
+    orderBy?: 'desc' | 'asc'
+}
 
 export class PaginationDto {
     @ApiProperty({
@@ -12,7 +23,7 @@ export class PaginationDto {
     @Min(1)
     @IsOptional()
     @Type(() => Number)
-    pageSize?: number
+    limit?: number
 
     @ApiProperty({
         required: false,
@@ -27,6 +38,7 @@ export class PaginationDto {
 class BaseBodyReview {
     @ApiProperty()
     @Length(1, 255)
+    @IsNotEmpty()
     @IsString()
     message: string
 
@@ -53,41 +65,74 @@ export class CreateReviewDto extends BaseBodyReview {
     @ApiProperty()
     @Min(1)
     @IsInt()
-    userId: number
-
-    @ApiProperty()
-    @Min(1)
-    @IsInt()
     movieId: number
 }
 
-export class ReviewDto {
-    @ApiProperty()
+export class ReviewResponse {
+    @ApiProperty({
+        example: 1
+    })
     id: number
 
-    @ApiProperty()
+    @ApiProperty({
+        example: 'This movie perfect! 10/10'
+    })
     message: string
 
-    @ApiProperty()
+    @ApiProperty({
+        example: '2023-03-23T00:00:00.000Z'
+    })
     createdAt: Date
 
     @ApiProperty({
-        example: 5
+        example: 10
     })
     rating: number
 
-    @ApiProperty()
+    @ApiProperty({
+        example: false
+    })
     isChanged: boolean
 
-    @ApiProperty()
+    @ApiProperty({
+        example: 1
+    })
     userId: number
 
-    @ApiProperty()
+    @ApiProperty({
+        example: 1
+    })
     movieId: number
 
-    @ApiProperty()
+    @ApiProperty({
+        example: 10
+    })
     totalComments: number
 
-    @ApiProperty()
+    @ApiProperty({
+        example: 15
+    })
     totalLikes: number
+
+    @ApiProperty({
+        example: false
+    })
+    isLiked?: boolean
+}
+
+export class GetReviewsForMovieResponse {
+    @ApiProperty({ type: [ReviewResponse]})
+    data: ReviewResponse[];
+  
+    @ApiProperty({
+        example: 15
+    })
+    nextCursor: number | null;
+}
+
+export class DeletedReviewResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
 }

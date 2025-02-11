@@ -7,7 +7,7 @@ export class CountryService {
 
 	constructor(private db: DbService) {}
 
-	async findByCode(code: string) {
+	async findCountryByCode(code: string) {
 		this.logger.log(`Finding country by code '${code}'`);
 
 		const country = await this.db.country.findUnique({
@@ -25,7 +25,7 @@ export class CountryService {
 		return country;
 	}
 
-	async getAll() {
+	async getAllCountries() {
 		this.logger.log(`Getting all countries`);
 
 		const countries = await this.db.country.findMany();
