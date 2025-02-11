@@ -78,8 +78,8 @@ model CommentLike {
 model Comment {
   id          Int           @id @default(autoincrement())
   message     String        @db.VarChar(255)
-  userId      Int           @unique
-  reviewId    Int           @unique
+  userId      Int           
+  reviewId    Int           
   likes       CommentLike[]
   totalLikes  Int           @default(0)
   isChanged   Boolean       @default(false)

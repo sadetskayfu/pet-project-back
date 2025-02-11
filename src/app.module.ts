@@ -13,6 +13,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ReviewModule } from './reviews/reviews.module';
 import { ActorModule } from './actors/actors.module';
 import { ReviewLikeModule } from './reviewLikes/reviewLikes.module';
+import { CommentModule } from './comments/comments.module';
+import { CommentLikeModule } from './commentLikes/commentLikes.module';
 
 @Module({
 	imports: [
@@ -25,6 +27,8 @@ import { ReviewLikeModule } from './reviewLikes/reviewLikes.module';
 		ActorModule,
 		ReviewModule,
 		ReviewLikeModule,
+		CommentModule,
+		CommentLikeModule,
 		ScheduleModule.forRoot(),
 		ConfigModule.forRoot({
 			isGlobal: true,

@@ -240,11 +240,11 @@ export class ReviewService {
 			},
 		});
 
-		const isLiked = await this.likeService.findUserLike(userId, reviewId)
+		const userLike = await this.likeService.findUserLike(userId, reviewId)
 
 		const updatedReviewWithLike = {
 			...updatedReview,
-			isLiked: !!isLiked
+			isLiked: !!userLike
 		}
 
 		this.logger.log(`Review updated: ${JSON.stringify(updatedReviewWithLike)}`);
@@ -257,6 +257,30 @@ export class ReviewService {
 		);
 
 		return updatedReviewWithLike;
+	}
+
+	async updateTotalComments(reviewId: number, isIncrement: boolean) {
+		this.logger.log(
+			`Updating total comments for review with ID '${reviewId}'`,
+		);
+
+		const updatedReview = await this.db.review.update({
+			where: {
+				id: reviewId
+			},
+			data: {
+				totalComments: isIncrement ? {increment: 1} : {decrement: 1}
+			},
+			select: {
+				id: true,
+				totalComments: true
+			}
+		})
+
+		this.logger.log(`Review updated: ${JSON.stringify(updatedReview)}`);
+
+		return updatedReview
+
 	}
 
 	async updateTotalLikes(reviewId: number, isIncrement: boolean) {

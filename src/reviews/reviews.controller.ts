@@ -13,7 +13,7 @@ import {
 	ValidationPipe,
 } from '@nestjs/common';
 import { ReviewService } from './reviews.service';
-import { CreateReviewDto, DeletedReviewResponse, GetReviewsForMovieResponse, OrderByDto, PaginationDto, ReviewResponse, UpdateReviewDto } from './dto';
+import { CreateReviewDto, DeletedReviewResponse, GetReviewsForMovieResponse, OrderDto, PaginationDto, ReviewResponse, UpdateReviewDto } from './dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SessionInfo } from 'src/auth/session-info.decorator';
 import { SessionInfoDto } from 'src/auth/dto';
@@ -34,16 +34,16 @@ export class ReviewController {
 	})
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async getReviewsForMovie(
-		@Query('movieId', ParseIntPipe) id: number,
+		@Query('movieId', ParseIntPipe) movieId: number,
 		@Query() pagination: PaginationDto,
-		@Query() orderBy: OrderByDto
+		@Query() order: OrderDto
 	): Promise<GetReviewsForMovieResponse> {
 		const { reviews, nextCursor } =
 			await this.reviewService.getReviewsForMovie(
-				id,
+				movieId,
 				pagination.limit,
 				pagination.cursor,
-				orderBy.orderBy,
+				order.order,
 			);
 
 		return {
@@ -109,8 +109,8 @@ export class ReviewController {
 		type: DeletedReviewResponse
 	})
 	@UseGuards(AuthGuard)
-	async deleteReview(@Query('id', ParseIntPipe) id: number, @SessionInfo() session: SessionInfoDto): Promise<DeletedReviewResponse> {
-		return this.reviewService.deleteReview(session.id, id);
+	async deleteReview(@Query('reviewId', ParseIntPipe) reviewId: number, @SessionInfo() session: SessionInfoDto): Promise<DeletedReviewResponse> {
+		return this.reviewService.deleteReview(session.id, reviewId);
 	}
 
 	@Put('likes')

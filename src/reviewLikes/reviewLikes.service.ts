@@ -26,7 +26,7 @@ export class ReviewLikeService {
     }
 
     async findLikedReviews(userId: number, reviewIds: number[]) {
-        this.logger.log(`Finding liked review`)
+        this.logger.log(`Finding liked reviews`)
 
         const likedReviews = await this.db.reviewLike.findMany({
             where: {

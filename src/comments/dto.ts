@@ -1,7 +1,6 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Max, Min } from "class-validator";
-import { IsHalfStep } from "src/decorators/isHalfStep.decorator";
+import { ApiProperty } from "@nestjs/swagger"
+import { Type } from "class-transformer"
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from "class-validator"
 
 export class OrderDto {
     @ApiProperty({
@@ -35,40 +34,29 @@ export class PaginationDto {
     cursor?: number
 }
 
-class BaseReview {
+class BaseComment {
     @ApiProperty()
     @Length(1, 255)
     @IsNotEmpty()
     @IsString()
     message: string
-
-    @ApiProperty({
-        example: 4.5
-    })
-    @IsHalfStep({
-        message: 'Rating must be a number with a step of 0.5'
-    })
-    @Min(0.5)
-    @Max(10)
-    @IsNumber()
-    rating: number
 }
 
-export class UpdateReviewDto extends BaseReview {
+export class UpdateCommentDto extends BaseComment {
+    @ApiProperty()
+    @Min(1)
+    @IsInt()
+    commentId: number
+}
+
+export class CreateCommentDto extends BaseComment {
     @ApiProperty()
     @Min(1)
     @IsInt()
     reviewId: number
 }
 
-export class CreateReviewDto extends BaseReview {
-    @ApiProperty()
-    @Min(1)
-    @IsInt()
-    movieId: number
-}
-
-export class ReviewResponse {
+export class CommentResponse {
     @ApiProperty({
         example: 1
     })
@@ -85,11 +73,6 @@ export class ReviewResponse {
     createdAt: Date
 
     @ApiProperty({
-        example: 10
-    })
-    rating: number
-
-    @ApiProperty({
         example: false
     })
     isChanged: boolean
@@ -102,12 +85,7 @@ export class ReviewResponse {
     @ApiProperty({
         example: 1
     })
-    movieId: number
-
-    @ApiProperty({
-        example: 10
-    })
-    totalComments: number
+    reviewId: number
 
     @ApiProperty({
         example: 15
@@ -120,9 +98,9 @@ export class ReviewResponse {
     isLiked: boolean
 }
 
-export class GetReviewsForMovieResponse {
-    @ApiProperty({ type: [ReviewResponse]})
-    data: ReviewResponse[];
+export class GetCommentsForReviewResponse {
+    @ApiProperty({ type: [CommentResponse]})
+    data: CommentResponse[];
   
     @ApiProperty({
         example: 15
@@ -130,7 +108,7 @@ export class GetReviewsForMovieResponse {
     nextCursor?: number | null;
 }
 
-export class DeletedReviewResponse {
+export class DeletedCommentResponse {
     @ApiProperty({
         example: 1
     })
