@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
 	IsArray,
 	IsDateString,
@@ -11,14 +11,105 @@ import {
     Max,
     Min,
 } from 'class-validator';
+import { CountryResponse } from 'src/countries/dto';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
-import { IsHalfStep } from 'src/decorators/isHalfStep.decorator';
+import { GenreResponse } from 'src/genres/dto';
+
+export class CursorResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: 5
+    })
+    rating?: number
+
+    @ApiProperty({
+        example: 2014
+    })
+    releaseYear?: number
+}
+
+export class MovieResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: 'Avatar'
+    })
+    title: string
+
+    @ApiProperty({
+        example: 130
+    })
+    duration: number
+
+    @ApiProperty({
+        type: CountryResponse
+    })
+    country: CountryResponse
+
+    @ApiProperty({
+        type: [GenreResponse]
+    })
+    genres: GenreResponse[]
+
+    @ApiProperty({
+        example: 5
+    })
+    rating: number
+
+    @ApiProperty({
+        example: 55
+    })
+    totalReviews: number
+
+    @ApiProperty({
+        example: 2014
+    })
+    releaseYear: number
+
+    @ApiProperty({
+        example: 'https://example.com/photo.jpg'
+    })
+    cardImgUrl: string
+}
+
+export class GetMoviesResponse {
+    @ApiProperty({
+        type: [MovieResponse]
+    })
+    data: MovieResponse[]
+
+    @ApiProperty({
+        type: CursorResponse
+    })
+    nextCursor: CursorResponse | null
+}
 
 export class CreateMovieDto {
-    @ApiProperty({example: 'Avatar' })
+    @ApiProperty()
     @IsNotEmpty()
 	@IsString()
 	title: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    description: string
+
+    @ApiProperty()
+    @IsInt()
+    ageLimit: number
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    cardImgUrl: string
 
 	@ApiProperty({
 		example: '2010-07-16',
@@ -33,9 +124,7 @@ export class CreateMovieDto {
 	@IsValidCountry()
 	countryCode: string;
 
-	@ApiProperty({
-		example: 148,
-	})
+	@ApiProperty()
 	@IsInt()
 	duration: number;
 
@@ -45,27 +134,94 @@ export class CreateMovieDto {
 	@IsArray()
 	@IsNotEmpty({ each: true })
 	genreIds: number[];
+
+    @ApiProperty({
+        example: [1, 2]
+    })
+    @IsArray()
+    @IsNotEmpty({each: true})
+    actorIds: number[]
 }
 
-export class Cursor {
+export class UpdateMovieDto extends CreateMovieDto {
+    @ApiProperty()
+    @Min(1)
+    @IsInt()
     id: number
-    rating: number
-    releaseYear: number
 }
 
-export class FilterWithPaginationDto {
+export class PaginationDto {
+    @ApiProperty({
+        required: false
+    })
+    @Min(1)
+    @IsInt()
+    @IsOptional()
+    @Type(() => Number)
+    cursorId?: number
+
+    @ApiProperty({
+        required: false
+    })
+    @IsOptional()
+    @Min(0)
+    @Max(10)
+    @IsInt()
+    @Type(() => Number)
+    cursorRating?: number
+
+    @ApiProperty({
+        required: false
+    })
+    @IsOptional()
+    @Min(1900)
+    @Max(new Date().getFullYear())
+    @Type(() => Number)
+    cursorReleaseYear?: number
+
+    @ApiProperty({
+        default: 40,
+        required: false
+    })
+    @IsOptional()
+    @Min(1)
+    @IsInt()
+    @Type(() => Number)
+    limit?: number
+}
+
+export class SortingDto {
+    @ApiProperty({ required: false, enum: ['rating', 'releaseYear'] })
+    @IsOptional()
+    @IsIn(['rating', 'releaseYear'])
+    sort?: 'rating' | 'releaseYear';
+
+    @ApiProperty({
+        required: false,
+        default: 'desc',
+        enum: ['desc', 'asc']
+    })
+    @IsOptional()
+    @IsIn(['desc', 'asc'])
+    order?: 'desc' | 'asc'
+}
+
+export class FilterDto {
     @ApiProperty({ required: false})
     @IsOptional()
+    @IsNotEmpty()
     @IsString()
     title?: string;
   
     @ApiProperty({ required: false, description: 'Жанры (разделенные "+")', example: 'fantasy+action' })
     @IsOptional()
+    @IsNotEmpty()
     @IsString()
     genres?: string;
   
     @ApiProperty({ required: false, description: 'Страны (разделенные "+")', example: 'US+RU' })
     @IsOptional()
+    @IsNotEmpty()
     @IsString()
     countries?: string;
   
@@ -73,6 +229,7 @@ export class FilterWithPaginationDto {
     @IsOptional()
     @IsInt()
     @Min(1900)
+    @Max(new Date().getFullYear())
     @Type(() => Number)
     year?: number;
   
@@ -83,20 +240,4 @@ export class FilterWithPaginationDto {
     @Max(10)
     @Type(() => Number)
     rating?: number;
-  
-    @ApiProperty({ required: false})
-    @IsOptional()
-    cursor?: Cursor;
-  
-    @ApiProperty({ required: false, default: 40 })
-    @IsOptional()
-    @IsInt()
-    @Min(1)
-    @Type(() => Number)
-    pageSize: number = 40;
-  
-    @ApiProperty({ required: false, enum: ['rating', 'releaseYear'] })
-    @IsOptional()
-    @IsIn(['rating', 'releaseYear'])
-    sortedBy?: 'rating' | 'releaseYear';
-  }
+}

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-validator";
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-validator";
 
 export class PaginationMeta {
     @ApiProperty({
@@ -74,7 +74,7 @@ export class CreateActorDto {
     @ApiProperty({
         example: '2010-07-16'
     })
-    @Length(10, 10)
+    @IsDateString()
     @IsNotEmpty()
     @IsString()
     birthDate: string

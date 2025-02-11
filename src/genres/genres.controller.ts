@@ -27,8 +27,8 @@ export class GenreController {
         status: 200,
         type: [GenreResponse] 
     })
-	async getAllGenres(): Promise<GenreResponse[]> {
-		return this.genreService.getAllGenres();
+	async getAll(): Promise<GenreResponse[]> {
+		return this.genreService.getAll();
 	}
 
 	@Post()
@@ -39,8 +39,8 @@ export class GenreController {
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async createGenre(@Body() body: CreateGenreDto): Promise<GenreResponse> {
-		return this.genreService.createGenre(body.name);
+	async create(@Body() body: CreateGenreDto): Promise<GenreResponse> {
+		return this.genreService.create(body.name);
 	}
 
 	@Delete()
@@ -51,8 +51,8 @@ export class GenreController {
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async deleteGenre(@Query('id', ParseIntPipe) id: number): Promise<GenreResponse> {
-		return this.genreService.deleteGenre(id);
+	async delete(@Query('id', ParseIntPipe) id: number): Promise<GenreResponse> {
+		return this.genreService.delete(id);
 	}
 
 	@Put()
@@ -63,7 +63,7 @@ export class GenreController {
     })
     @Roles('admin')
     @UseGuards(AuthGuard, RolesGuard)
-	async updateGenre(@Body() body: UpdateGenreDto): Promise<GenreResponse> {
-		return this.genreService.updateGenre(body.id, body.name);
+	async update(@Body() body: UpdateGenreDto): Promise<GenreResponse> {
+		return this.genreService.update(body.id, body.name);
 	}
 }

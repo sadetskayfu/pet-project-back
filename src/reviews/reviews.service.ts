@@ -46,7 +46,7 @@ export class ReviewService {
 		return review;
 	}
 
-	async findReviewFromMovieByUserId(userId: number, movieId: number) {
+	async findUserReview(userId: number, movieId: number) {
 		this.logger.log(`Finding review by user ID '${userId}'`);
 
 		const review = await this.db.review.findUnique({
@@ -64,7 +64,14 @@ export class ReviewService {
 			);
 		}
 
-		return review;
+		const userLike = await this.likeService.findUserLike(userId, review.id)
+
+		const reviewWithLike = {
+			...review,
+			isLiked: !!userLike
+		}
+		 
+		return reviewWithLike
 	}
 
 	async getReviewsForMovie(

@@ -5,10 +5,14 @@ import {
 	HttpCode,
 	HttpStatus,
 	Post,
+	UseGuards,
 } from '@nestjs/common';
 import { RoleService } from './roles.service';
-import { UpdateUserRoleBodyDto } from './dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { RoleResponse, UpdateUserRoleBodyDto } from './dto';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/auth/roles.decorator';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { RolesGuard } from 'src/auth/roles.guard';
 
 @ApiTags('Roles')
 @Controller('roles')
@@ -17,15 +21,26 @@ export class RoleController {
 
 	@Post()
 	@ApiOperation({ summary: 'Добавить роль пользователю' })
+	@ApiResponse({
+		status: 200,
+		type: RoleResponse
+	})
 	@HttpCode(HttpStatus.OK)
-	async addRoleToUser(@Body() body: UpdateUserRoleBodyDto) {
+	@Roles('admin')
+	@UseGuards(AuthGuard, RolesGuard)
+	async addRoleToUser(@Body() body: UpdateUserRoleBodyDto): Promise<RoleResponse> {
 		return this.roleService.addRoleToUser(body.email, body.role);
 	}
 
 	@Delete()
+	@ApiResponse({
+		status: 200,
+		type: RoleResponse
+	})
 	@ApiOperation({ summary: 'Удалить роль у пользователя' })
-	@HttpCode(HttpStatus.OK)
-	async removeRoleFromUser(@Body() body: UpdateUserRoleBodyDto) {
+	@Roles('admin')
+	@UseGuards(AuthGuard, RolesGuard)
+	async removeRoleFromUser(@Body() body: UpdateUserRoleBodyDto): Promise<RoleResponse> {
 		return this.roleService.removeRoleFromUser(
 			body.email,
 			body.role,

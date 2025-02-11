@@ -142,12 +142,15 @@ model Actor {
 model Movie {
   id            Int           @id @default(autoincrement())
   title         String
+  description   String
+  ageLimit      Int
   releaseData   DateTime
   releaseYear   Int
   countryCode   String        @db.VarChar(2)
   rating        Float         @default(0.0)
   totalReviews  Int           @default(0)
   duration      Int
+  cardImgUrl    String
   genres        MovieGenre[]
   reviews       Review[]
   actors        MovieActors[]

@@ -52,6 +52,19 @@ export class ReviewController {
 		};
 	}
 
+	@Get('user-review')
+	@ApiOperation({
+		summary: 'Получить отзыв пользователя к фильму'
+	})
+	@ApiResponse({
+		status: 200,
+		type: ReviewResponse
+	})
+	@UseGuards(AuthGuard)
+	async getUserReview(@Query('movieId', ParseIntPipe) movieId: number, @SessionInfo() session: SessionInfoDto): Promise<ReviewResponse> {
+		return this.reviewService.findUserReview(session.id, movieId)
+	}
+
 	@Post()
 	@ApiOperation({
 		summary: 'Оставить отзыв'

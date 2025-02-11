@@ -12,19 +12,22 @@ export class ActorService {
 
 	constructor(private db: DbService) {}
 
-	// async findManyByIds(ids: number[]) {
-	// 	this.logger.log(`Finding genres by IDs: ${JSON.stringify(ids)}`);
+	async findManyByIds(ids: number[]) {
+		this.logger.log(`Finding actors by IDs: ${JSON.stringify(ids)}`);
 
-	// 	const genres = await this.db.genre.findMany({
-	// 		where: {
-	// 			id: { in: ids },
-	// 		},
-	// 	});
+		const actors = await this.db.actor.findMany({
+			where: {
+				id: { in: ids },
+			},
+			select: {
+				id: true
+			}
+		});
 
-	// 	this.logger.log(`Found genres: ${JSON.stringify(genres)}`);
+		this.logger.log(`Found actors: ${JSON.stringify(actors)}`);
 
-	// 	return genres;
-	// }
+		return actors;
+	}
 
 	async findActorById(id: number) {
 		this.logger.log(`Finding actor by ID "${id}"`);

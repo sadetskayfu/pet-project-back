@@ -127,6 +127,8 @@ CREATE TABLE "Actor" (
     "id" SERIAL NOT NULL,
     "firstName" VARCHAR(32) NOT NULL,
     "lastName" VARCHAR(32) NOT NULL,
+    "birthDate" TIMESTAMP(3) NOT NULL,
+    "photoUrl" TEXT,
 
     CONSTRAINT "Actor_pkey" PRIMARY KEY ("id")
 );
@@ -135,12 +137,15 @@ CREATE TABLE "Actor" (
 CREATE TABLE "Movie" (
     "id" SERIAL NOT NULL,
     "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "ageLimit" INTEGER NOT NULL,
     "releaseData" TIMESTAMP(3) NOT NULL,
     "releaseYear" INTEGER NOT NULL,
     "countryCode" VARCHAR(2) NOT NULL,
     "rating" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "totalReviews" INTEGER NOT NULL DEFAULT 0,
     "duration" INTEGER NOT NULL,
+    "cardImgUrl" TEXT NOT NULL,
 
     CONSTRAINT "Movie_pkey" PRIMARY KEY ("id")
 );

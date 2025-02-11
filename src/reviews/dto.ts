@@ -117,7 +117,7 @@ export class ReviewResponse {
     @ApiProperty({
         example: false
     })
-    isLiked?: boolean
+    isLiked: boolean
 }
 
 export class GetReviewsForMovieResponse {

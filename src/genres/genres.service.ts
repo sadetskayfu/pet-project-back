@@ -12,13 +12,16 @@ export class GenreService {
 
 	constructor(private db: DbService) {}
 
-	async findGenresByIds(ids: number[]) {
+	async findManyByIds(ids: number[]) {
 		this.logger.log(`Finding genres by IDs: ${JSON.stringify(ids)}`);
 
 		const genres = await this.db.genre.findMany({
 			where: {
 				id: { in: ids },
 			},
+			select: {
+				id: true
+			}
 		});
 
 		this.logger.log(`Found genres: ${JSON.stringify(genres)}`);
@@ -26,7 +29,7 @@ export class GenreService {
 		return genres;
 	}
 
-	async findGenreById(id: number) {
+	async findById(id: number) {
 		this.logger.log(`Finding genre by ID "${id}"`);
 
 		const genre = await this.db.genre.findUnique({
@@ -44,7 +47,7 @@ export class GenreService {
 		return genre;
 	}
 
-	async findGenreByName(name: string) {
+	async findByName(name: string) {
 		this.logger.log(`Finding genre by name '${name}'`);
 
 		const genre = await this.db.genre.findUnique({
@@ -58,9 +61,9 @@ export class GenreService {
 		return genre;
 	}
 
-	async createGenre(genreName: string) {
+	async create(genreName: string) {
 		const name = genreName.toLowerCase();
-		const existingGenre = await this.findGenreByName(name);
+		const existingGenre = await this.findByName(name);
 
 		if (existingGenre) {
 			throw new BadRequestException(`Genre '${name}' already exists`);
@@ -79,8 +82,8 @@ export class GenreService {
 		return genre;
 	}
 
-	async deleteGenre(id: number) {
-		await this.findGenreById(id);
+	async delete(id: number) {
+		await this.findById(id);
 
 		this.logger.log(`Deleting genre by ID '${id}'`);
 
@@ -95,11 +98,11 @@ export class GenreService {
 		return genre;
 	}
 
-	async updateGenre(id: number, genreName: string) {
-		await this.findGenreById(id);
+	async update(id: number, genreName: string) {
+		await this.findById(id);
 
 		const name = genreName.toLowerCase();
-		const existingGenre = await this.findGenreByName(name);
+		const existingGenre = await this.findByName(name);
 
 		if (existingGenre && existingGenre.id !== id) {
 			throw new BadRequestException(`Genre '${name}' already exists`);
@@ -121,7 +124,7 @@ export class GenreService {
 		return genre;
 	}
 
-	async getAllGenres() {
+	async getAll() {
 		this.logger.log('Getting all genres');
 
 		const genres = await this.db.genre.findMany();
