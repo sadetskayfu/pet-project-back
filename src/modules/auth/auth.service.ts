@@ -8,6 +8,7 @@ import { UserService } from 'src/modules/users/users.service';
 import { PasswordService } from './password.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfirmationService } from 'src/modules/confirmation/confirmation.service';
+import { ProfileService } from '../profile/profile.service';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
 		private passwordService: PasswordService,
 		private jwtService: JwtService,
 		private confirmationService: ConfirmationService,
+		private profileService: ProfileService,
 	) {}
 
 	async signUp(email: string, password: string, country: string) {
@@ -70,6 +72,8 @@ export class AuthService {
 		}
 
 		await this.userService.setConfirmed(user.id)
+
+		await this.profileService.createProfile(user.id)
 
 		const accessToken = await this.jwtService.signAsync({
 			id: user.id,

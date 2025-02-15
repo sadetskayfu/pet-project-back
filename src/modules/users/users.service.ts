@@ -12,7 +12,6 @@ export class UserService {
 	constructor(
 		private db: DbService,
 		private roleService: RoleService,
-		private profileService: ProfileService
 	) {}
 
 	async findByEmail(email: string) {
@@ -121,8 +120,6 @@ export class UserService {
 		});
 
 		this.logger.log(`User created: ${JSON.stringify(user)}`);
-
-		await this.profileService.createProfile(user.id)
 
 		return user;
 	}

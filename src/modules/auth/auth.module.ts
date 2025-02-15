@@ -6,9 +6,10 @@ import { CookieService } from './cookie.service';
 import { UserModule } from 'src/modules/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfirmationModule } from 'src/modules/confirmation/confirmation.module';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
-	imports: [UserModule, ConfirmationModule, JwtModule.register({
+	imports: [UserModule, ConfirmationModule, ProfileModule, JwtModule.register({
         global: true,
         secret: process.env.JWT_SECRET,
         signOptions: {
