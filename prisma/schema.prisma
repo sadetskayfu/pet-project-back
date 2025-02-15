@@ -13,29 +13,44 @@ model UnconfirmedUser {
   hash                      String
   salt                      String
   countryCode               String    @db.VarChar(2)
-  confirmationCode          String?   @db.VarChar(6)
-  confirmationCodeExpiresAt DateTime?
   createdAt                 DateTime  @default(now())
 }
 
 model User {
-  id                        Int           @id @default(autoincrement())
-  email                     String        @unique @db.VarChar(64)
+  id                        Int             @id @default(autoincrement())
+  email                     String          @unique @db.VarChar(64)
   hash                      String
   salt                      String
-  confirmationCode          String?       @db.VarChar(6)
-  confirmationCodeExpiresAt DateTime?
-  createdAt                 DateTime      @default(now())
-  countryCode               String        @db.VarChar(2)
+  createdAt                 DateTime        @default(now())
+  countryCode               String          @db.VarChar(2)
+  confirmationIds           Confirmation[]
   profile                   Profile?
   roles                     Role[]
   reviews                   Review[]
   comments                  Comment[]
   reviewLikes               ReviewLike[]
   commentLikes              CommentLike[]
-  notifications             Notification[]
+  watchedMovies             WatchedMovie[]
+  wishListMovies            WishListMovie[]
 
-  country                   Country       @relation(fields: [countryCode], references: [code])
+  country Country @relation(fields: [countryCode], references: [code])
+}
+
+model Confirmation {
+  id        Int      @id @default(autoincrement())
+  userId    Int      
+  code      String
+  salt      String
+  timeValid Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ViewedMoviesByUser {
+  id      Int @id @default(autoincrement())
+  userId  Int
+  movieId Int
 }
 
 model Role {
@@ -44,49 +59,36 @@ model Role {
   users User[]
 }
 
-model Notification {
-  id Int @id @default(autoincrement())
-  userId Int
-  senderId Int 
-  reviewId Int?
-  commentId Int?
-  message String
-  isRead Boolean @default(false)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-}
-
 model ReviewLike {
-  id       Int    @id @default(autoincrement())
-  userId   Int    @unique
-  reviewId Int    @unique
+  id       Int @id @default(autoincrement())
+  userId   Int @unique
+  reviewId Int @unique
 
-  user     User   @relation(fields: [userId], references: [id])
-  review   Review @relation(fields: [reviewId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id])
 }
 
 model CommentLike {
-  id        Int     @id @default(autoincrement())
-  userId    Int     @unique
-  commentId Int     @unique
+  id        Int @id @default(autoincrement())
+  userId    Int @unique
+  commentId Int @unique
 
-  user      User    @relation(fields: [userId], references: [id])
-  comment   Comment @relation(fields: [commentId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  comment Comment @relation(fields: [commentId], references: [id])
 }
 
 model Comment {
-  id          Int           @id @default(autoincrement())
-  message     String        @db.VarChar(255)
-  userId      Int           
-  reviewId    Int           
-  likes       CommentLike[]
-  totalLikes  Int           @default(0)
-  isChanged   Boolean       @default(false)
-  createdAt   DateTime      @default(now())
+  id         Int           @id @default(autoincrement())
+  message    String        @db.VarChar(255)
+  userId     Int
+  reviewId   Int
+  likes      CommentLike[]
+  totalLikes Int           @default(0)
+  isChanged  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
 
-  user        User          @relation(fields: [userId], references: [id])
-  review      Review        @relation(fields: [reviewId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id])
 }
 
 model Review {
@@ -102,8 +104,8 @@ model Review {
   isChanged     Boolean      @default(false)
   createdAt     DateTime     @default(now())
 
-  user          User         @relation(fields: [userId], references: [id])
-  movie         Movie        @relation(fields: [movieId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id])
 }
 
 model Profile {
@@ -113,8 +115,8 @@ model Profile {
   lastName  String?   @db.VarChar(32)
   birthDate DateTime?
   gender    String?   @db.VarChar(5)
-  
-  user      User      @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Country {
@@ -140,22 +142,24 @@ model Actor {
 }
 
 model Movie {
-  id            Int           @id @default(autoincrement())
-  title         String
-  description   String
-  ageLimit      Int
-  releaseData   DateTime
-  releaseYear   Int
-  countryCode   String        @db.VarChar(2)
-  rating        Float         @default(0.0)
-  totalReviews  Int           @default(0)
-  duration      Int
-  cardImgUrl    String
-  genres        MovieGenre[]
-  reviews       Review[]
-  actors        MovieActors[]
+  id           Int             @id @default(autoincrement())
+  title        String
+  description  String
+  ageLimit     Int
+  releaseData  DateTime
+  releaseYear  Int
+  countryCode  String          @db.VarChar(2)
+  rating       Float           @default(0.0)
+  totalReviews Int             @default(0)
+  duration     Int
+  cardImgUrl   String
+  genres       MovieGenre[]
+  reviews      Review[]
+  actors       MovieActors[]
+  watchedBy    WatchedMovie[]
+  wishListedBy WishListMovie[]
 
-  country       Country       @relation(fields: [countryCode], references: [code])
+  country Country @relation(fields: [countryCode], references: [code])
 }
 
 model MovieActors {
@@ -176,4 +180,26 @@ model MovieGenre {
   genre Genre @relation(fields: [genreId], references: [id])
 
   @@id([movieId, genreId])
+}
+
+model WatchedMovie {
+  userId    Int
+  movieId   Int
+  watchedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id])
+
+  @@unique([userId, movieId])
+}
+
+model WishListMovie {
+  userId  Int
+  movieId Int
+  addedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id])
+
+  @@unique([userId, movieId])
 }
