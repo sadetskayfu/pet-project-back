@@ -7,20 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UnconfirmedUser {
-  id                        Int       @id @default(autoincrement())
-  email                     String    @unique @db.VarChar(64)
-  hash                      String
-  salt                      String
-  countryCode               String    @db.VarChar(2)
-  createdAt                 DateTime  @default(now())
-}
-
 model User {
   id                        Int             @id @default(autoincrement())
   email                     String          @unique @db.VarChar(64)
   hash                      String
   salt                      String
+  isConfirmed               Boolean         @default(false)
   createdAt                 DateTime        @default(now())
   countryCode               String          @db.VarChar(2)
   confirmationIds           Confirmation[]

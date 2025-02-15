@@ -20,6 +20,11 @@ export class SignUpDto extends SignInDto {
 	country: string;
 }
 
+export class AuthResponse {
+	@ApiProperty()
+	userId: number
+}
+
 export class SessionInfoDto {
     @ApiProperty()
     id: number

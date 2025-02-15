@@ -12,7 +12,7 @@ import {
     Min,
 } from 'class-validator';
 import { ActorForMovieResponse } from 'src/modules/actors/dto';
-import { CountryResponse } from 'src/countries/dto';
+import { CountryResponse } from 'src/modules/countries/dto';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
 import { GenreResponse } from 'src/modules/genres/dto';
 

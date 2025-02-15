@@ -7,14 +7,12 @@ import {
 import { UserService } from 'src/modules/users/users.service';
 import { PasswordService } from './password.service';
 import { JwtService } from '@nestjs/jwt';
-import { UnconfirmedUserService } from 'src/modules/unconfirmedUsers/unconfirmedUsers.service';
 import { ConfirmationService } from 'src/modules/confirmation/confirmation.service';
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private userService: UserService,
-		private unconfirmedUserService: UnconfirmedUserService,
 		private passwordService: PasswordService,
 		private jwtService: JwtService,
 		private confirmationService: ConfirmationService,
@@ -23,21 +21,18 @@ export class AuthService {
 	async signUp(email: string, password: string, country: string) {
 		const existingUser = await this.userService.findByEmail(email);
 
-		if (existingUser) {
+		if (existingUser && existingUser.isConfirmed) {
 			throw new BadRequestException(`User with email '${email}' already exists`);
 		}
 
-		const existingUnconfirmedUser =
-			await this.unconfirmedUserService.findByEmail(email);
-
-		if (existingUnconfirmedUser) {
-			await this.unconfirmedUserService.delete(existingUnconfirmedUser.id)
+		if (existingUser && !existingUser.isConfirmed) {
+			this.userService.delete(existingUser.id)
 		}
 
 		const salt = this.passwordService.getSalt();
 		const hash = this.passwordService.getHash(password, salt);
 
-		const unconfirmedUser = await this.unconfirmedUserService.create(
+		const user = await this.userService.create(
 			email,
 			hash,
 			salt,
@@ -45,7 +40,7 @@ export class AuthService {
 		);
 
 		return {
-			userId: unconfirmedUser.id
+			userId: user.id
 		}
 	}
 
@@ -68,20 +63,13 @@ export class AuthService {
 	async signUpConfirmations(code: string, confirmationSessionId: number) {
 		const confirmationSession = await this.confirmationService.codeConfirmations(code, confirmationSessionId)
 
-		const unconfirmedUser = await this.unconfirmedUserService.findById(confirmationSession.userId)
+		const user = await this.userService.findById(confirmationSession.userId)
 
-		if(!unconfirmedUser) {
+		if(!user) {
 			throw new NotFoundException(`User with id ${confirmationSession.userId} not found`)
 		}
 
-		const user = await this.userService.create(
-			unconfirmedUser.email,
-			unconfirmedUser.hash,
-			unconfirmedUser.salt,
-			unconfirmedUser.countryCode,
-		);
-
-		await this.unconfirmedUserService.delete(unconfirmedUser.id)
+		await this.userService.setConfirmed(user.id)
 
 		const accessToken = await this.jwtService.signAsync({
 			id: user.id,

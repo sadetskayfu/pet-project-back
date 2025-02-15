@@ -1,9 +1,10 @@
 import { Body, Controller, HttpCode, Post } from "@nestjs/common";
 import { ConfirmationService } from "./confirmation.service";
 import { SendAuthCodeDto, SendCodeResponse } from "./dto";
-import { ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { AUTH_CONFIRM_CODE_TIME_VALID } from "src/shared/constants";
 
+@ApiTags('Confirmation')
 @Controller('confirmation')
 export class ConfirmationController {
     constructor(private confirmationService: ConfirmationService){}
@@ -20,7 +21,7 @@ export class ConfirmationController {
     async sendAuthCode(@Body() body: SendAuthCodeDto): Promise<SendCodeResponse> {
         const code = this.confirmationService.getCode()
 
-        await this.confirmationService.sendCode(code, body.email, body.confirmationType)
+        await this.confirmationService.sendAuthCode(body.userId, code, body.confirmationType)
 
         return this.confirmationService.createConfirmationSession(code, AUTH_CONFIRM_CODE_TIME_VALID, body.userId)
     }

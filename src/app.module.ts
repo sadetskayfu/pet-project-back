@@ -14,12 +14,12 @@ import { ReviewLikeModule } from './modules/reviewLikes/reviewLikes.module';
 import { CommentModule } from './modules/comments/comments.module';
 import { CommentLikeModule } from './modules/commentLikes/commentLikes.module';
 import { ProfileModule } from './modules/profile/profile.module';
-import { RedisModule } from './modules/redis/redis.module';
+//import { RedisModule } from './modules/redis/redis.module';
 import { ConfirmationModule } from './modules/confirmation/confirmation.module';
 
 @Module({
 	imports: [
-		RedisModule,
+		//RedisModule,
 		GenreModule,
 		MovieModule,
 		UserModule,

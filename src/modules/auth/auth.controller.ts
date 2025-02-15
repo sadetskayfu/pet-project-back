@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
+	AuthResponse,
 	SessionInfoDto,
 	SignInDto,
 	SignUpDto,
@@ -31,10 +32,14 @@ export class AuthController {
 
 	@Post('sign-up')
 	@ApiOperation({ summary: 'Регистрация' })
+	@ApiResponse({
+		status: 201,
+		type: AuthResponse
+	})
 	async signUp(
 		@Body() body: SignUpDto,
-	) {
-		this.authService.signUp(
+	): Promise<AuthResponse> {
+		return this.authService.signUp(
 			body.email,
 			body.password,
 			body.country,
@@ -43,11 +48,15 @@ export class AuthController {
 
 	@Post('sign-in')
 	@ApiOperation({ summary: 'Вход в систему' })
+	@ApiResponse({
+		status: 200,
+		type: AuthResponse
+	})
 	@HttpCode(HttpStatus.OK)
 	async signIn(
 		@Body() body: SignInDto,
-	) {
-		this.authService.signIn(
+	): Promise<AuthResponse> {
+		return this.authService.signIn(
 			body.email,
 			body.password,
 		);

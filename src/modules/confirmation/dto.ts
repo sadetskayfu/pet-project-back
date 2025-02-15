@@ -1,11 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-validator";
+import { IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-validator";
 
 export class SendCodeDto {
-    @ApiProperty()
-    @IsEmail()
-    email: string
-
     @ApiProperty({
         required: false,
         default: 'mail',

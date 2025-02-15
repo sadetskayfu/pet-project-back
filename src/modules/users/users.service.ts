@@ -3,6 +3,7 @@ import { CountryService } from 'src/modules/countries/countries.service';
 import { DbService } from 'src/db/db.service';
 import { ProfileService } from 'src/modules/profile/profile.service';
 import { RoleService } from 'src/modules/roles/roles.service';
+import { UNCONFIRMED_USER_TIME_LIFE } from 'src/shared/constants';
 
 @Injectable()
 export class UserService {
@@ -103,12 +104,16 @@ export class UserService {
 				email,
 				hash,
 				salt,
-				countryCode,
 				roles: {
 					connect: {
 						id: role.id,
 					},
 				},
+				country: {
+					connect: {
+						code: countryCode
+					}
+				}
 			},
 			include: {
 				roles: true,
@@ -120,5 +125,48 @@ export class UserService {
 		await this.profileService.createProfile(user.id)
 
 		return user;
+	}
+
+	async deleteExpiredUnconfirmedUsers() {
+		const now = new Date();
+
+		const expirationTime = new Date(
+			now.getTime() - UNCONFIRMED_USER_TIME_LIFE,
+		);
+
+		this.logger.log(`Deleting users created before: ${expirationTime}`);
+
+		const deletedUsers = await this.db.user.deleteMany({
+			where: {
+				createdAt: {
+					lt: expirationTime,
+				},
+			},
+		});
+
+		this.logger.log(`Deleted ${deletedUsers.count} expired users`);
+	}
+
+	async setConfirmed(id: number) {
+		this.logger.log(`Setting confirmed status for user with id '${id}'`);
+
+		await this.db.user.update({
+			where: { id },
+			data: {
+				isConfirmed: true
+			}
+		});
+
+		this.logger.log(`Confirmed status has been established`);
+	}
+
+	async delete(id: number) {
+		this.logger.log(`Deleting user with id '${id}'`);
+
+		await this.db.user.delete({
+			where: { id },
+		});
+
+		this.logger.log(`User deleted`);
 	}
 }

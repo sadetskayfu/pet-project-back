@@ -9,6 +9,7 @@ import { DbService } from 'src/db/db.service';
 import { MailService } from './mail.service';
 import { SendCodeResponse } from './dto';
 import { CONFIRM_SESSION_TIME_LIFE } from 'src/shared/constants';
+import { UserService } from '../users/users.service';
 
 @Injectable()
 export class ConfirmationService {
@@ -17,6 +18,7 @@ export class ConfirmationService {
 	constructor(
 		private db: DbService,
 		private mailService: MailService,
+		private userService: UserService
 	) {}
 
 	getSalt() {
@@ -29,6 +31,18 @@ export class ConfirmationService {
 
 	getCode() {
 		return Math.random().toString(36).substring(2, 8).toUpperCase();
+	}
+
+	async sendAuthCode(userId: number, code: string, confirmationType: 'mail' | 'phone' = 'mail',) {
+		const user = await this.userService.findById(userId)
+
+		if(!user) {
+			throw new NotFoundException(`User with id ${userId} does not exist`)
+		}
+
+		if(confirmationType === 'mail') {
+			this.mailService.sendConfirmationCode(user.email, code)
+		}
 	}
 
 	async sendCode(
