@@ -1,4 +1,4 @@
 export const AUTH_CONFIRM_CODE_TIME_VALID = 3 * 60 * 1000;
-export const CONFIRM_SESSION_TIME_LIFE = 1 * 60 * 60 * 1000
+export const CONFIRM_SESSION_TIME_LIFE = 3 * 60 * 1000
 export const COOKIE_TIME_LIFE = 7 * 24 * 60 * 60 * 1000;
 export const UNCONFIRMED_USER_TIME_LIFE = 30 * 60 * 1000;

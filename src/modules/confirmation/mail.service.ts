@@ -32,6 +32,7 @@ export class MailService {
             await this.transporter.sendMail(mailOptions);
         } catch (error) {
             this.logger.error(`Cannot send message on email '${email}'`)
+            throw new BadRequestException(`Cannot send message on email '${email}'`)
         }
     }
 }

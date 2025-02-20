@@ -28,7 +28,7 @@ export class AuthService {
 		}
 
 		if (existingUser && !existingUser.isConfirmed) {
-			this.userService.delete(existingUser.id)
+			await this.userService.delete(existingUser.id)
 		}
 
 		const salt = this.passwordService.getSalt();
@@ -72,8 +72,8 @@ export class AuthService {
 		}
 
 		await this.userService.setConfirmed(user.id)
-
 		await this.profileService.createProfile(user.id)
+		await this.confirmationService.deleteConfirmationSessionsByUserId(user.id)
 
 		const accessToken = await this.jwtService.signAsync({
 			id: user.id,
@@ -92,6 +92,8 @@ export class AuthService {
 		if(!user) {
 			throw new NotFoundException(`User with id ${confirmationSession.userId} not found`)
 		}
+
+		await this.confirmationService.deleteConfirmationSessionsByUserId(user.id)
 
 		const accessToken = await this.jwtService.signAsync({
 			id: user.id,

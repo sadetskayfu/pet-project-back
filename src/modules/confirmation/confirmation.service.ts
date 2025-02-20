@@ -1,5 +1,7 @@
 import {
 	BadRequestException,
+	forwardRef,
+	Inject,
 	Injectable,
 	Logger,
 	NotFoundException,
@@ -18,6 +20,7 @@ export class ConfirmationService {
 	constructor(
 		private db: DbService,
 		private mailService: MailService,
+		@Inject(forwardRef(() => UserService))
 		private userService: UserService
 	) {}
 
@@ -41,7 +44,7 @@ export class ConfirmationService {
 		}
 
 		if(confirmationType === 'mail') {
-			this.mailService.sendConfirmationCode(user.email, code)
+			await this.mailService.sendConfirmationCode(user.email, code)
 		}
 	}
 
@@ -51,13 +54,13 @@ export class ConfirmationService {
 		confirmationType: 'mail' | 'phone' = 'mail',
 	) {
 		if (confirmationType === 'mail') {
-			this.mailService.sendConfirmationCode(email, code);
+			await this.mailService.sendConfirmationCode(email, code);
 		}
 	}
 
 	async createConfirmationSession(
 		code: string,
-		timeValid: number,
+		codeTimeValid: number,
 		userId: number,
 	): Promise<SendCodeResponse> {
 		const salt = this.getSalt();
@@ -67,7 +70,7 @@ export class ConfirmationService {
 			data: {
 				code: hash,
 				salt,
-				timeValid,
+				timeValid: codeTimeValid,
 				user: {
 					connect: {
 						id: userId,
@@ -79,7 +82,7 @@ export class ConfirmationService {
 			},
 		});
 
-		return { id: confirmationSession.id, timeValid };
+		return { confirmationSessionid: confirmationSession.id, codeTimeValid };
 	}
 
 	async codeConfirmations(
@@ -106,6 +109,7 @@ export class ConfirmationService {
 
 		const hash = this.getHash(code, confirmationSession.salt);
 		const isValid = hash === confirmationSession.code;
+		this.logger.log(hash, confirmationSession.code)
 
 		if (!isValid) {
 			throw new BadRequestException('Confirmation code is not valid');
@@ -114,6 +118,20 @@ export class ConfirmationService {
 		return {
 			userId: confirmationSession.userId
 		}
+	}
+
+	async deleteConfirmationSessionsByUserId (userId: number) {
+		this.logger.log(
+			`Deleting confirmation sessions by userId '${userId}'`,
+		);
+
+		const deletingSessions = await this.db.confirmation.deleteMany({
+			where: {
+				userId,
+			},
+		})
+
+		this.logger.log(`${deletingSessions.count} confirmation session deleted`)
 	}
 
 	async deleteExpiredConfirmationSession() {

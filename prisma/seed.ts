@@ -61,7 +61,7 @@ async function seedGenres() {
 		skipDuplicates: true,
 	});
 
-	console.log('Таблица ролей успешно заполнена!');
+	console.log('Таблица жанров успешно заполнена!');
 }
 
 seedCountries()

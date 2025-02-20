@@ -5,7 +5,7 @@ export class SendCodeDto {
     @ApiProperty({
         required: false,
         default: 'mail',
-        enum: ['mail', 'phone']
+        description: `'mail' or 'phone'`
     })
     @IsIn(['mail', 'phone'])
     @IsOptional()
@@ -37,11 +37,11 @@ export class SendCodeResponse {
         example: 1,
         description: 'Confirmation session ID'
     })
-    id: number
+    confirmationSessionid: number
 
     @ApiProperty({
         example: 1000,
         description: 'Code validity time (ms)'
     })
-    timeValid: number
+    codeTimeValid: number
 }

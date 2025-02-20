@@ -6,7 +6,7 @@ import { ConfirmationService } from "./confirmation.service";
 export class TasksService {
     constructor(private confirmationService: ConfirmationService){}
 
-    @Cron(CronExpression.EVERY_10_MINUTES)
+    @Cron(CronExpression.EVERY_MINUTE)
     async deleteExpiredConfirmationSession() {
         this.confirmationService.deleteExpiredConfirmationSession()
     }

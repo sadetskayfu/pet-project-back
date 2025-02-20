@@ -8,6 +8,6 @@ export class TasksService {
 
     @Cron(CronExpression.EVERY_10_MINUTES)
     async deleteExpiredUnconfirmedUsers() {
-        this.userService.deleteExpiredUnconfirmedUsers()
+        //this.userService.deleteExpiredUnconfirmedUsers()
     }
 }

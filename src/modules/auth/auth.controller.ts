@@ -90,6 +90,7 @@ export class AuthController {
 		);
 
 		this.cookieService.setToken(res, accessToken);
+		return {}
 	}
 
 	@Post('sign-in/confirmation')
@@ -105,5 +106,6 @@ export class AuthController {
 		);
 
 		this.cookieService.setToken(res, accessToken);
+		return {}
 	}
 }

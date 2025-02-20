@@ -1,9 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { CountryService } from 'src/modules/countries/countries.service';
 import { DbService } from 'src/db/db.service';
-import { ProfileService } from 'src/modules/profile/profile.service';
 import { RoleService } from 'src/modules/roles/roles.service';
 import { UNCONFIRMED_USER_TIME_LIFE } from 'src/shared/constants';
+import { ConfirmationService } from '../confirmation/confirmation.service';
 
 @Injectable()
 export class UserService {
@@ -12,6 +11,7 @@ export class UserService {
 	constructor(
 		private db: DbService,
 		private roleService: RoleService,
+		private confirmationService: ConfirmationService
 	) {}
 
 	async findByEmail(email: string) {
@@ -133,11 +133,14 @@ export class UserService {
 
 		this.logger.log(`Deleting users created before: ${expirationTime}`);
 
+		await this.confirmationService.deleteExpiredConfirmationSession()
+
 		const deletedUsers = await this.db.user.deleteMany({
 			where: {
 				createdAt: {
 					lt: expirationTime,
 				},
+				isConfirmed: false,
 			},
 		});
 
@@ -159,6 +162,8 @@ export class UserService {
 
 	async delete(id: number) {
 		this.logger.log(`Deleting user with id '${id}'`);
+
+		await this.confirmationService.deleteConfirmationSessionsByUserId(id)
 
 		await this.db.user.delete({
 			where: { id },
