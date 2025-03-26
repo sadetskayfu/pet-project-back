@@ -9,5 +9,5 @@ export class CountryResponse {
     @ApiProperty({
         example: 'Belarus'
     })
-    name: string
+    label: string
 }

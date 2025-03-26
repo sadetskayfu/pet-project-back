@@ -10,12 +10,19 @@ export function IsValidCountry(validationOptions?: ValidationOptions) {
       options: validationOptions,
       validator: {
         validate(value: any) {
-          if (typeof value !== 'string') return false;
-
           const countryCodes = getCodes()
-          const isValidCode = Boolean(countryCodes.find((code) => code === value))
 
-          return isValidCode
+          if(Array.isArray(value)) {
+            const set = new Set(countryCodes)
+
+            return value.every((code) => set.has(code))
+          }
+
+          if(typeof value === 'string') {
+            return Boolean(countryCodes.find((code) => code === value))
+          }
+
+          return false
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a valid country code.`;

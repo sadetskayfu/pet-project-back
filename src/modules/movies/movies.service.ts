@@ -10,44 +10,61 @@ import {
 	FilterDto,
 	SortingDto,
 	PaginationDto,
-	UpdateMovieDto,
 	MovieResponse,
 	MovieForCardResponse,
 	GetMoviesResponse,
-	DeleteMovieResponse,
 } from './dto';
 import { GenreService } from 'src/modules/genres/genres.service';
 import { ActorService } from 'src/modules/actors/actors.service';
+import { Prisma } from '@prisma/client';
 
-interface Movie {
-	id: number;
-	title: string;
-	releaseYear: number;
-	rating: number;
-	totalReviews: number;
-	duration: number;
-	cardImgUrl: string;
-	genres: {
-		genre: {
-			id: number;
-			name: string;
+type RawMovie = Prisma.MovieGetPayload<{
+	include: {
+		genres: {
+			select: {
+				genre: true;
+			};
 		};
-	}[];
-	country: {
-		name: string;
-		code: string;
+		actors: {
+			select: {
+				actor: true;
+			};
+		};
+		countries: {
+			select: {
+				country: true;
+			};
+		};
 	};
-}
+}>;
+
+type RawMovieForCard = Prisma.MovieGetPayload<{
+	select: {
+		id: true;
+		title: true;
+		duration: true;
+		countries: {
+			select: {
+				country: true;
+			};
+		};
+		genres: {
+			select: {
+				genre: true;
+			};
+		};
+		rating: true;
+		totalReviews: true;
+		releaseYear: true;
+		cardImgUrl: true;
+	};
+}>;
 
 @Injectable()
 export class MovieService {
 	private readonly logger = new Logger(MovieService.name);
 
-	constructor(
-		private db: DbService,
-		private genreService: GenreService,
-		private actorService: ActorService,
-	) {}
+	constructor(private db: DbService) {}
 
 	async findMovieById(id: number) {
 		this.logger.log(`Finding movie by ID '${id}'`);
@@ -73,6 +90,8 @@ export class MovieService {
 	}
 
 	async findRatedMovies(userId: number): Promise<Set<number>> {
+		this.logger.log(`Finding rated movies for user with ID '${userId}'`);
+
 		const ratedMovies = await this.db.movie.findMany({
 			where: {
 				reviews: {
@@ -88,10 +107,14 @@ export class MovieService {
 
 		const ratedMovieIds = ratedMovies.map((movie) => movie.id);
 
+		this.logger.log(`Found movies: ${JSON.stringify(ratedMovieIds)}`);
+
 		return new Set(ratedMovieIds);
 	}
 
 	async findWatchedMovies(userId: number): Promise<Set<number>> {
+		this.logger.log(`Finding watched movies for user with ID '${userId}'`);
+
 		const watchedMovies = await this.db.movie.findMany({
 			where: {
 				watchedBy: {
@@ -107,10 +130,14 @@ export class MovieService {
 
 		const watchedMovieIds = watchedMovies.map((movie) => movie.id);
 
+		this.logger.log(`Found movies: ${JSON.stringify(watchedMovieIds)}`);
+
 		return new Set(watchedMovieIds);
 	}
 
 	async findWishlistMovies(userId: number): Promise<Set<number>> {
+		this.logger.log(`Finding wishlist movies for user with ID '${userId}'`);
+
 		const wishlistMovies = await this.db.movie.findMany({
 			where: {
 				wishListedBy: {
@@ -125,6 +152,8 @@ export class MovieService {
 		});
 
 		const wishListMovieIds = wishlistMovies.map((movie) => movie.id);
+
+		this.logger.log(`Found movies: ${JSON.stringify(wishListMovieIds)}`);
 
 		return new Set(wishListMovieIds);
 	}
@@ -142,26 +171,19 @@ export class MovieService {
 			include: {
 				actors: {
 					select: {
-						actor: {
-							select: {
-								id: true,
-								firstName: true,
-								lastName: true,
-							},
-						},
+						actor: true,
 					},
 				},
 				genres: {
 					select: {
-						genre: {
-							select: {
-								id: true,
-								name: true,
-							},
-						},
+						genre: true,
 					},
 				},
-				country: true,
+				countries: {
+					select: {
+						country: true,
+					},
+				},
 			},
 		});
 
@@ -173,36 +195,7 @@ export class MovieService {
 			);
 		}
 
-		let ratedMovieIds: Set<number> = new Set();
-		let watchedMovieIds: Set<number> = new Set();
-		let addedToWishlistMovieIds: Set<number> = new Set();
-
-		if (userId) {
-			[ratedMovieIds, watchedMovieIds, addedToWishlistMovieIds] =
-				await Promise.all([
-					this.findRatedMovies(userId),
-					this.findWatchedMovies(userId),
-					this.findWishlistMovies(userId),
-				]);
-		}
-
-		const transformedMovie: MovieResponse = {
-			...movie,
-			genres: movie.genres.map((g) => ({
-				id: g.genre.id,
-				name: g.genre.name,
-			})),
-			actors: movie.actors.map((a) => ({
-				id: a.actor.id,
-				firstName: a.actor.firstName,
-				lastName: a.actor.lastName,
-			})),
-			isRated: userId ? ratedMovieIds.has(movieId) : false,
-			isWatched: userId ? watchedMovieIds.has(movieId) : false,
-			isAddedToWishlist: userId
-				? addedToWishlistMovieIds.has(movieId)
-				: false,
-		};
+		const transformedMovie = await this.transformMovie(movie, userId);
 
 		return transformedMovie;
 	}
@@ -261,120 +254,99 @@ export class MovieService {
 			description,
 			ageLimit,
 			cardImgUrl,
+			videoUrl,
 			releaseDate,
-			countryCode,
+			countries,
 			duration,
-			genreIds,
-			actorIds,
+			genres,
+			actors,
 		} = data;
 
-		const genres = await this.genreService.findManyByIds(genreIds);
+		try {
+			this.logger.log('Creating movie');
 
-		if (genres.length !== genreIds.length) {
-			throw new BadRequestException('One or more genres not found.');
-		}
-
-		const actors = await this.actorService.findManyByIds(actorIds);
-
-		if (actors.length !== actorIds.length) {
-			throw new BadRequestException('One or more actors not found.');
-		}
-
-		const movie = await this.db.movie.create({
-			data: {
-				title,
-				description,
-				ageLimit,
-				cardImgUrl,
-				releaseData: new Date(releaseDate),
-				releaseYear: new Date(releaseDate).getFullYear(),
-				duration,
-				country: {
-					connect: {
-						code: countryCode,
+			const movie = await this.db.movie.create({
+				data: {
+					title,
+					description,
+					ageLimit,
+					cardImgUrl,
+					videoUrl,
+					releaseDate: new Date(releaseDate),
+					releaseYear: new Date(releaseDate).getFullYear(),
+					duration,
+					countries: {
+						create: countries.map((countryCode) => ({
+							countryCode,
+						})),
+					},
+					genres: {
+						create: genres.map((genreId) => ({
+							genreId,
+						})),
+					},
+					actors: {
+						create: actors.map((actorId) => ({
+							actorId,
+						})),
 					},
 				},
-				genres: {
-					create: genreIds.map((genreId) => ({
-						genreId,
-					})),
-				},
-				actors: {
-					create: actorIds.map((actorId) => ({
-						actorId,
-					})),
-				},
-			},
-			include: {
-				genres: {
-					select: {
-						genre: {
-							select: {
-								id: true,
-								name: true,
-							},
+				include: {
+					genres: {
+						select: {
+							genre: true,
+						},
+					},
+					actors: {
+						select: {
+							actor: true,
+						},
+					},
+					countries: {
+						select: {
+							country: true,
 						},
 					},
 				},
-				actors: {
-					select: {
-						actor: {
-							select: {
-								id: true,
-								firstName: true,
-								lastName: true,
-							},
-						},
-					},
-				},
-				country: true,
-			},
-		});
+			});
 
-		const transformedMovie: MovieResponse = {
-			...movie,
-			genres: movie.genres.map((g) => ({
-				id: g.genre.id,
-				name: g.genre.name,
-			})),
-			actors: movie.actors.map((a) => ({
-				id: a.actor.id,
-				firstName: a.actor.firstName,
-				lastName: a.actor.lastName,
-			})),
-			isRated: false,
-			isWatched: false,
-			isAddedToWishlist: false,
-		};
+			const transformedMovie = await this.transformMovie(movie);
 
-		return transformedMovie;
+			this.logger.log(
+				`Movie created: ${JSON.stringify(transformedMovie)}`,
+			);
+
+			return transformedMovie;
+		} catch (error) {
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2003'
+			) {
+				throw new BadRequestException(
+					'One or more related entities (countries, genres, actors) not found',
+				);
+			}
+
+			throw error;
+		}
 	}
 
-	async updateMovie(data: UpdateMovieDto): Promise<MovieResponse> {
+	async updateMovie(
+		id: number,
+		data: CreateMovieDto,
+	): Promise<MovieResponse> {
 		const {
-			id,
 			title,
 			description,
 			ageLimit,
 			cardImgUrl,
+			videoUrl,
 			releaseDate,
-			countryCode,
+			countries,
 			duration,
-			genreIds,
-			actorIds,
+			genres,
+			actors,
 		} = data;
-
-		const genres = await this.genreService.findManyByIds(genreIds);
-
-		if (genres.length !== genreIds.length) {
-			throw new BadRequestException('One or more genres not found.');
-		}
-
-		const actors = await this.actorService.findManyByIds(actorIds);
-
-		if (actors.length !== actorIds.length) {
-			throw new BadRequestException('One or more actors not found.');
-		}
 
 		await this.db.movie.update({
 			where: {
@@ -387,83 +359,85 @@ export class MovieService {
 				actors: {
 					deleteMany: {},
 				},
+				countries: {
+					deleteMany: {},
+				},
 			},
 		});
 
-		const updatedMovie = await this.db.movie.update({
-			where: {
-				id,
-			},
-			data: {
-				title,
-				description,
-				ageLimit,
-				cardImgUrl,
-				releaseData: new Date(releaseDate),
-				releaseYear: new Date(releaseDate).getFullYear(),
-				duration,
-				country: {
-					connect: {
-						code: countryCode,
+		try {
+			this.logger.log(`Updating movie with ID '${id}'`);
+
+			const updatedMovie = await this.db.movie.update({
+				where: {
+					id,
+				},
+				data: {
+					title,
+					description,
+					ageLimit,
+					cardImgUrl,
+					videoUrl,
+					releaseDate: new Date(releaseDate),
+					releaseYear: new Date(releaseDate).getFullYear(),
+					duration,
+					countries: {
+						create: countries.map((countryCode) => ({
+							countryCode,
+						})),
+					},
+					genres: {
+						create: genres.map((genreId) => ({
+							genreId,
+						})),
+					},
+					actors: {
+						create: actors.map((actorId) => ({
+							actorId,
+						})),
 					},
 				},
-				genres: {
-					create: genreIds.map((genreId) => ({
-						genreId,
-					})),
-				},
-				actors: {
-					create: actorIds.map((actorId) => ({
-						actorId,
-					})),
-				},
-			},
-			include: {
-				genres: {
-					select: {
-						genre: {
-							select: {
-								id: true,
-								name: true,
-							},
+				include: {
+					genres: {
+						select: {
+							genre: true,
+						},
+					},
+					actors: {
+						select: {
+							actor: true,
+						},
+					},
+					countries: {
+						select: {
+							country: true,
 						},
 					},
 				},
-				actors: {
-					select: {
-						actor: {
-							select: {
-								id: true,
-								firstName: true,
-								lastName: true,
-							},
-						},
-					},
-				},
-				country: true,
-			},
-		});
+			});
 
-		const transformedMovie: MovieResponse = {
-			...updatedMovie,
-			genres: updatedMovie.genres.map((g) => ({
-				id: g.genre.id,
-				name: g.genre.name,
-			})),
-			actors: updatedMovie.actors.map((a) => ({
-				id: a.actor.id,
-				firstName: a.actor.firstName,
-				lastName: a.actor.lastName,
-			})),
-			isRated: false,
-			isWatched: false,
-			isAddedToWishlist: false,
-		};
+			const transformedMovie = await this.transformMovie(updatedMovie);
 
-		return transformedMovie;
+			this.logger.log(
+				`Movie updating: ${JSON.stringify(this.transformMovie)}`,
+			);
+
+			return transformedMovie;
+		} catch (error) {
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2003'
+			) {
+				throw new BadRequestException(
+					'One or more related entities (countries, genres, actors) not found',
+				);
+			}
+
+			throw error;
+		}
 	}
 
-	async deleteMovie(id: number): Promise<DeleteMovieResponse> {
+	async deleteMovie(id: number): Promise<MovieResponse> {
 		await this.findMovieById(id);
 
 		this.logger.log(`Deleting movie with ID '${id}'`);
@@ -472,17 +446,74 @@ export class MovieService {
 			where: {
 				id,
 			},
-			select: {
-				id: true,
+			include: {
+				genres: {
+					select: {
+						genre: true,
+					},
+				},
+				actors: {
+					select: {
+						actor: true,
+					},
+				},
+				countries: {
+					select: {
+						country: true,
+					},
+				},
 			},
 		});
 
-		this.logger.log(`Movie deleted: ${JSON.stringify(deletedMovie)}`);
+		const transformedMovie = await this.transformMovie(deletedMovie);
 
-		return deletedMovie;
+		this.logger.log(`Movie deleted: ${JSON.stringify(transformedMovie)}`);
+
+		return transformedMovie;
 	}
 
-	async transformMovies(movies: Movie[], userId?: number) {
+	async transformMovie(movie: RawMovie, userId?: number) {
+		let ratedMovieIds: Set<number> = new Set();
+		let watchedMovieIds: Set<number> = new Set();
+		let addedToWishlistMovieIds: Set<number> = new Set();
+
+		if (userId) {
+			[ratedMovieIds, watchedMovieIds, addedToWishlistMovieIds] =
+				await Promise.all([
+					this.findRatedMovies(userId),
+					this.findWatchedMovies(userId),
+					this.findWishlistMovies(userId),
+				]);
+		}
+
+		const transformedMovie: MovieResponse = {
+			...movie,
+			actors: movie.actors.map((actor) => ({
+				id: actor.actor.id,
+				firstName: actor.actor.firstName,
+				lastName: actor.actor.lastName,
+				birthDate: actor.actor.birthDate,
+				photoUrl: actor.actor.photoUrl,
+			})),
+			genres: movie.genres.map((genre) => ({
+				id: genre.genre.id,
+				name: genre.genre.name,
+			})),
+			countries: movie.countries.map((country) => ({
+				code: country.country.code,
+				label: country.country.label,
+			})),
+			isRated: userId ? ratedMovieIds.has(movie.id) : false,
+			isWatched: userId ? watchedMovieIds.has(movie.id) : false,
+			isAddedToWishlist: userId
+				? addedToWishlistMovieIds.has(movie.id)
+				: false,
+		};
+
+		return transformedMovie;
+	}
+
+	async transformMoviesForCard(movies: RawMovieForCard[], userId?: number) {
 		let ratedMovieIds: Set<number> = new Set();
 		let watchedMovieIds: Set<number> = new Set();
 		let addedToWishlistMovieIds: Set<number> = new Set();
@@ -499,9 +530,13 @@ export class MovieService {
 		const transformedMovies: MovieForCardResponse[] = movies.map(
 			(movie) => ({
 				...movie,
-				genres: movie.genres.map((g) => ({
-					id: g.genre.id,
-					name: g.genre.name,
+				genres: movie.genres.map((genre) => ({
+					id: genre.genre.id,
+					name: genre.genre.name,
+				})),
+				countries: movie.countries.map((country) => ({
+					code: country.country.code,
+					label: country.country.label,
 				})),
 				isRated: userId ? ratedMovieIds.has(movie.id) : false,
 				isWatched: userId ? watchedMovieIds.has(movie.id) : false,
@@ -522,7 +557,7 @@ export class MovieService {
 	): Promise<GetMoviesResponse> {
 		const { title, genres, countries, rating, year } = filter;
 		const {
-			limit = 40,
+			limit = 20,
 			cursorId,
 			cursorRating,
 			cursorReleaseYear,
@@ -572,22 +607,29 @@ export class MovieService {
 								},
 							}
 						: {},
-					countries ? { countryCode: { in: countryList } } : {},
+					countries
+						? {
+								countries: {
+									some: {
+										country: { code: { in: countryList } },
+									},
+								},
+							}
+						: {},
 				],
 			},
 			select: {
 				id: true,
 				title: true,
 				duration: true,
-				country: true,
+				countries: {
+					select: {
+						country: true,
+					},
+				},
 				genres: {
 					select: {
-						genre: {
-							select: {
-								id: true,
-								name: true,
-							},
-						},
+						genre: true,
 					},
 				},
 				rating: true,
@@ -598,7 +640,10 @@ export class MovieService {
 			orderBy: orderBy,
 		});
 
-		const transformedMovies = await this.transformMovies(movies, userId)
+		const transformedMovies = await this.transformMoviesForCard(
+			movies,
+			userId,
+		);
 
 		const nextCursor =
 			movies.length === limit

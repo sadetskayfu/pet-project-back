@@ -20,8 +20,8 @@ export class ActorService {
 				id: { in: ids },
 			},
 			select: {
-				id: true
-			}
+				id: true,
+			},
 		});
 
 		this.logger.log(`Found actors: ${JSON.stringify(actors)}`);
@@ -48,13 +48,15 @@ export class ActorService {
 	}
 
 	async findActor(firstName: string, lastName: string, birthDate: string) {
-		this.logger.log(`Finding actor by name '${firstName} ${lastName}' and birthDate '${birthDate}'`);
+		this.logger.log(
+			`Finding actor by name '${firstName} ${lastName}' and birthDate '${birthDate}'`,
+		);
 
 		const actor = await this.db.actor.findFirst({
 			where: {
 				firstName,
-                lastName,
-                birthDate: new Date(birthDate)
+				lastName,
+				birthDate: new Date(birthDate),
 			},
 		});
 
@@ -63,21 +65,34 @@ export class ActorService {
 		return actor;
 	}
 
-	async createActor(firstName: string, lastName: string, birthDate: string, photoUrl?: string) {
-		const existingActor = await this.findActor(firstName, lastName, birthDate);
+	async createActor(
+		firstName: string,
+		lastName: string,
+		birthDate: string,
+		photoUrl?: string,
+	) {
+		const existingActor = await this.findActor(
+			firstName,
+			lastName,
+			birthDate,
+		);
 
 		if (existingActor) {
-			throw new BadRequestException(`Actor ${firstName} ${lastName} born on '${birthDate}' already exists`);
+			throw new BadRequestException(
+				`Actor ${firstName} ${lastName} born on '${birthDate}' already exists`,
+			);
 		}
 
-		this.logger.log(`Creating actor '${firstName} ${lastName} born on ${birthDate}'`);
+		this.logger.log(
+			`Creating actor '${firstName} ${lastName} born on ${birthDate}'`,
+		);
 
 		const actor = await this.db.actor.create({
 			data: {
 				firstName,
-                lastName,
-                birthDate: new Date(birthDate),
-                photoUrl
+				lastName,
+				birthDate: new Date(birthDate),
+				photoUrl,
 			},
 		});
 
@@ -102,13 +117,25 @@ export class ActorService {
 		return actor;
 	}
 
-	async updateActor(id: number, firstName: string, lastName: string, birthDate: string, photoUrl?: string) {
+	async updateActor(
+		id: number,
+		firstName: string,
+		lastName: string,
+		birthDate: string,
+		photoUrl?: string,
+	) {
 		await this.findActorById(id);
 
-        const existingActor = await this.findActor(firstName, lastName, birthDate)
+		const existingActor = await this.findActor(
+			firstName,
+			lastName,
+			birthDate,
+		);
 
 		if (existingActor && existingActor.id !== id) {
-			throw new BadRequestException(`Actor '${firstName} ${lastName}' born on '${birthDate}' already exists`);
+			throw new BadRequestException(
+				`Actor '${firstName} ${lastName}' born on '${birthDate}' already exists`,
+			);
 		}
 
 		this.logger.log(`Updating actor with ID '${id}'`);
@@ -116,9 +143,9 @@ export class ActorService {
 		const actor = await this.db.actor.update({
 			data: {
 				firstName,
-                lastName,
-                birthDate,
-                photoUrl
+				lastName,
+				birthDate: new Date(birthDate),
+				photoUrl,
 			},
 			where: {
 				id,
@@ -130,21 +157,50 @@ export class ActorService {
 		return actor;
 	}
 
-	async getAllActors(page: number, limit: number) {
-        const skip = (page - 1) * limit;
-
-		this.logger.log(`Getting actors, page '${page}'`);
+	async getAllActors(limit: number = 20, cursor?: number, name?: string) {
+		this.logger.log(`Getting actors, current cursor: ${cursor}'`);
 
 		const actors = await this.db.actor.findMany({
-            skip,
-            take: limit
-        });
+			skip: cursor ? 1 : undefined,
+			cursor: cursor ? { id: cursor } : undefined,
+			take: limit,
+			where: name
+				? {
+						OR: [
+							name
+								? {
+										firstName: {
+											contains: name,
+											mode: 'insensitive',
+										},
+									}
+								: {},
+							name
+								? {
+										lastName: {
+											contains: name,
+											mode: 'insensitive',
+										},
+									}
+								: {},
+						],
+					}
+				: undefined,
+			orderBy: {
+				id: 'desc',
+			},
+		});
 
-		this.logger.log(`Resulting actors: ${JSON.stringify(actors)}`);
+		const nextCursor =
+			actors.length === limit ? actors[actors.length - 1].id : null;
+
+		this.logger.log(
+			`Resulting actors: ${JSON.stringify(actors)}, next cursor: ${nextCursor}`,
+		);
 
 		return {
-            actors,
-            total: await this.db.actor.count()
-        };
+			actors,
+			nextCursor,
+		};
 	}
 }

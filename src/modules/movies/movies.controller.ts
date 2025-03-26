@@ -16,13 +16,11 @@ import {
 import { MovieService } from './movies.service';
 import {
 	CreateMovieDto,
-	DeleteMovieResponse,
 	FilterDto,
 	GetMoviesResponse,
 	MovieResponse,
 	PaginationDto,
 	SortingDto,
-	UpdateMovieDto,
 } from './dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/modules/auth/auth.guard';
@@ -40,35 +38,36 @@ export class MovieController {
 		status: 201,
 		type: MovieResponse,
 	})
-	@Roles('admin')
-	@UseGuards(AuthGuard, RolesGuard)
+	// @Roles('admin')
+	// @UseGuards(AuthGuard, RolesGuard)
 	async createMovie(@Body() body: CreateMovieDto): Promise<MovieResponse> {
 		return this.movieService.createMovie(body);
 	}
 
-	@Put()
+	@Put(':id')
 	@ApiOperation({ summary: 'Обновить фильм' })
 	@ApiResponse({
 		status: 200,
 		type: MovieResponse,
 	})
-	@Roles('admin')
-	@UseGuards(AuthGuard, RolesGuard)
-	async updateMovie(@Body() body: UpdateMovieDto): Promise<MovieResponse> {
-		return this.movieService.updateMovie(body);
+	@UsePipes(new ValidationPipe({ transform: true }))
+	// @Roles('admin')
+	// @UseGuards(AuthGuard, RolesGuard)
+	async updateMovie(@Param('id', ParseIntPipe) id: number, @Body() body: CreateMovieDto): Promise<MovieResponse> {
+		return this.movieService.updateMovie(id, body);
 	}
 
 	@Delete(':id')
 	@ApiOperation({ summary: 'Удалить фильм' })
 	@ApiResponse({
 		status: 200,
-		type: DeleteMovieResponse,
+		type: MovieResponse,
 	})
-	@Roles('admin')
-	@UseGuards(AuthGuard, RolesGuard)
+	// @Roles('admin')
+	// @UseGuards(AuthGuard, RolesGuard)
 	async deleteMovie(
 		@Param('id', ParseIntPipe) id: number,
-	): Promise<DeleteMovieResponse> {
+	): Promise<MovieResponse> {
 		return this.movieService.deleteMovie(id);
 	}
 
@@ -85,12 +84,12 @@ export class MovieController {
 	}
 
 	@Get()
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@ApiOperation({ summary: 'Получить фильмы' })
 	@ApiResponse({
 		status: 200,
 		type: GetMoviesResponse,
 	})
+	@UsePipes(new ValidationPipe({ transform: true }))
 	async getMovies(
 		@Query() filter: FilterDto,
 		@Query() pagination: PaginationDto,

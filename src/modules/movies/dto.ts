@@ -11,10 +11,10 @@ import {
     Max,
     Min,
 } from 'class-validator';
-import { ActorForMovieResponse } from 'src/modules/actors/dto';
 import { CountryResponse } from 'src/modules/countries/dto';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
 import { GenreResponse } from 'src/modules/genres/dto';
+import { ActorResponse } from '../actors/dto';
 
 export class CursorResponse {
     @ApiProperty({
@@ -31,6 +31,38 @@ export class CursorResponse {
         example: 2014
     })
     releaseYear?: number
+}
+
+export class MovieForCard {
+    id: number
+    title: string
+    duration: number
+    countries: CountryResponse[]
+
+    @ApiProperty({
+        type: [GenreResponse]
+    })
+    genres: GenreResponse[]
+
+    @ApiProperty({
+        example: 5
+    })
+    rating: number
+
+    @ApiProperty({
+        example: 55
+    })
+    totalReviews: number
+
+    @ApiProperty({
+        example: 2014
+    })
+    releaseYear: number
+
+    @ApiProperty({
+        example: 'https://example.com/photo.jpg'
+    })
+    cardImgUrl: string
 }
 
 export class MovieForCardResponse {
@@ -50,9 +82,9 @@ export class MovieForCardResponse {
     duration: number
 
     @ApiProperty({
-        type: CountryResponse
+        type: [CountryResponse]
     })
-    country: CountryResponse
+    countries: CountryResponse[]
 
     @ApiProperty({
         type: [GenreResponse]
@@ -97,9 +129,9 @@ export class MovieForCardResponse {
 
 export class MovieResponse extends MovieForCardResponse {
     @ApiProperty({
-        type: [ActorForMovieResponse]
+        type: [ActorResponse]
     })
-    actors: ActorForMovieResponse[]
+    actors: ActorResponse[]
 
     @ApiProperty({
         example: 'Description...'
@@ -114,7 +146,12 @@ export class MovieResponse extends MovieForCardResponse {
     @ApiProperty({
         example: '2023-03-23T00:00:00.000Z'
     })
-    releaseData: Date
+    releaseDate: Date
+
+    @ApiProperty({
+        example: 'https://example.com/photo.jpg'
+    })
+    videoUrl: string
 }
 
 export class GetMoviesResponse {
@@ -127,13 +164,6 @@ export class GetMoviesResponse {
         type: CursorResponse
     })
     nextCursor: CursorResponse | null
-}
-
-export class DeleteMovieResponse {
-    @ApiProperty({
-        example: 1
-    })
-    id: number
 }
 
 export class CreateMovieDto {
@@ -156,6 +186,11 @@ export class CreateMovieDto {
     @IsString()
     cardImgUrl: string
 
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    videoUrl: string
+
 	@ApiProperty({
 		example: '2010-07-16',
 	})
@@ -164,10 +199,10 @@ export class CreateMovieDto {
 	releaseDate: string;
 
 	@ApiProperty({
-		example: 'US',
+		example: ['US'],
 	})
 	@IsValidCountry()
-	countryCode: string;
+	countries: string[];
 
 	@ApiProperty()
 	@IsInt()
@@ -178,21 +213,14 @@ export class CreateMovieDto {
 	})
 	@IsArray()
 	@IsNotEmpty({ each: true })
-	genreIds: number[];
+	genres: number[];
 
     @ApiProperty({
         example: [1, 2]
     })
     @IsArray()
     @IsNotEmpty({each: true})
-    actorIds: number[]
-}
-
-export class UpdateMovieDto extends CreateMovieDto {
-    @ApiProperty()
-    @Min(1)
-    @IsInt()
-    id: number
+    actors: number[]
 }
 
 export class PaginationDto {
@@ -225,7 +253,7 @@ export class PaginationDto {
     cursorReleaseYear?: number
 
     @ApiProperty({
-        default: 40,
+        default: 20,
         required: false
     })
     @IsOptional()

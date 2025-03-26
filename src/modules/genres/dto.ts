@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsString, Min } from "class-validator";
+import { IsNotEmpty, IsString, Length } from "class-validator";
 
 export class GenreResponse {
     @ApiProperty({
@@ -17,12 +17,7 @@ export class CreateGenreDto {
     @ApiProperty()
     @IsNotEmpty()
     @IsString()
+    @Length(2, 50)
     name: string
 }
 
-export class UpdateGenreDto extends CreateGenreDto {
-    @ApiProperty()
-    @Min(1)
-    @IsNumber()
-    id: number
-}

@@ -8,29 +8,29 @@ datasource db {
 }
 
 model User {
-  id                        Int             @id @default(autoincrement())
-  email                     String          @unique @db.VarChar(64)
-  hash                      String
-  salt                      String
-  isConfirmed               Boolean         @default(false)
-  createdAt                 DateTime        @default(now())
-  countryCode               String          @db.VarChar(2)
-  confirmationIds           Confirmation[]
-  profile                   Profile?
-  roles                     Role[]
-  reviews                   Review[]
-  comments                  Comment[]
-  reviewLikes               ReviewLike[]
-  commentLikes              CommentLike[]
-  watchedMovies             WatchedMovie[]
-  wishListMovies            WishListMovie[]
+  id              Int             @id @default(autoincrement())
+  email           String          @unique @db.VarChar(64)
+  hash            String
+  salt            String
+  isConfirmed     Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  countryCode     String          @db.VarChar(2)
+  confirmationIds Confirmation[]
+  profile         Profile?
+  roles           Role[]
+  reviews         Review[]
+  comments        Comment[]
+  reviewLikes     ReviewLike[]
+  commentLikes    CommentLike[]
+  watchedMovies   WatchedMovie[]
+  wishListMovies  WishListMovie[]
 
   country Country @relation(fields: [countryCode], references: [code])
 }
 
 model Confirmation {
   id        Int      @id @default(autoincrement())
-  userId    Int      
+  userId    Int
   code      String
   salt      String
   timeValid Int
@@ -113,9 +113,9 @@ model Profile {
 
 model Country {
   code   String  @id @unique @db.VarChar(2)
-  name   String  @unique
+  label  String  @unique
   users  User[]
-  movies Movie[]
+  movies MovieCountries[]
 }
 
 model Genre {
@@ -138,28 +138,37 @@ model Movie {
   title        String
   description  String
   ageLimit     Int
-  releaseData  DateTime
+  releaseDate  DateTime
   releaseYear  Int
-  countryCode  String          @db.VarChar(2)
   rating       Float           @default(0.0)
   totalReviews Int             @default(0)
   duration     Int
   cardImgUrl   String
+  videoUrl     String
+  countries    MovieCountries[]
   genres       MovieGenre[]
   reviews      Review[]
   actors       MovieActors[]
   watchedBy    WatchedMovie[]
   wishListedBy WishListMovie[]
+}
 
-  country Country @relation(fields: [countryCode], references: [code])
+model MovieCountries {
+  movieId Int
+  countryCode String
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  country Country @relation(fields: [countryCode], references: [code], onDelete: Cascade)
+
+  @@id([movieId, countryCode])
 }
 
 model MovieActors {
   movieId Int
   actorId Int
 
-  movie Movie @relation(fields: [movieId], references: [id])
-  actor Actor @relation(fields: [actorId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  actor Actor @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
   @@id([movieId, actorId])
 }
@@ -168,8 +177,8 @@ model MovieGenre {
   movieId Int
   genreId Int
 
-  movie Movie @relation(fields: [movieId], references: [id])
-  genre Genre @relation(fields: [genreId], references: [id])
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
   @@id([movieId, genreId])
 }

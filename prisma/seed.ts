@@ -12,7 +12,7 @@ async function seedCountries() {
 			update: {}, // Если страна уже существует, ничего не обновляем
 			create: {
 				code: country.code, // Код страны (Alpha-2)
-				name: country.name,
+				label: country.name,
 			},
 		});
 	}
@@ -40,22 +40,22 @@ async function seedGenres() {
 	await prisma.genre.createMany({
 		data: [
 			{
-				name: 'action',
+				name: 'Action',
 			},
 			{
-				name: 'adventure',
+				name: 'Adventure',
 			},
 			{
-				name: 'comedy',
+				name: 'Comedy',
 			},
 			{
-				name: 'drama',
+				name: 'Drama',
 			},
 			{
-				name: 'horror',
+				name: 'Horror',
 			},
 			{
-				name: 'triller',
+				name: 'Triller',
 			},
 		],
 		skipDuplicates: true,
@@ -63,6 +63,29 @@ async function seedGenres() {
 
 	console.log('Таблица жанров успешно заполнена!');
 }
+
+async function seedActors() {
+	const actorArray = Array.from({length: 200}, (_, index) => ({
+		firstName: `FirstName${index}`,
+		lastName: `LastName${index}`,
+		birthDate: new Date()
+	}))
+
+	await prisma.actor.createMany({
+		data: actorArray,
+	})
+
+	console.log('Таблица акторов успешно заполнена!');
+}
+
+seedActors()
+	.catch((e) => {
+		console.error(e);
+		process.exit(1);
+	})
+	.finally(async () => {
+		await prisma.$disconnect();
+	});
 
 seedCountries()
 	.catch((e) => {

@@ -3,19 +3,22 @@ import {
 	Controller,
 	Delete,
 	Get,
+	Param,
 	ParseIntPipe,
 	Post,
 	Put,
 	Query,
 	UseGuards,
+	UsePipes,
+	ValidationPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ActorService } from './actors.service';
 import {
 	ActorResponse,
 	CreateActorDto,
 	GetAllActorsResponse,
-	UpdateActorDto,
+	PaginationDto,
 } from './dto';
 import { Roles } from 'src/modules/auth/roles.decorator';
 import { AuthGuard } from 'src/modules/auth/auth.guard';
@@ -32,23 +35,25 @@ export class ActorController {
 		status: 200,
 		type: GetAllActorsResponse,
 	})
+	@ApiQuery({
+		name: 'name',
+		type: String,
+		required: false,
+	  })
+	@UsePipes(new ValidationPipe({ transform: true }))
 	async getAllActors(
-		@Query('page', ParseIntPipe) page: number = 1,
-		@Query('limit') limit: number = 20,
+		@Query() pagination: PaginationDto,
+		@Query('name') name?: string
 	): Promise<GetAllActorsResponse> {
-		const { actors, total } = await this.actorService.getAllActors(
-			page,
-			limit,
+		const { actors, nextCursor } = await this.actorService.getAllActors(
+			pagination.limit,
+			pagination.cursor,
+			name
 		);
 
 		return {
 			data: actors,
-			meta: {
-				page,
-				limit,
-				total,
-				totalPages: Math.ceil(total / limit),
-			},
+			cursor: nextCursor
 		};
 	}
 
@@ -58,49 +63,49 @@ export class ActorController {
 		status: 201,
 		type: ActorResponse,
 	})
-	@Roles('admin')
-	@UseGuards(AuthGuard, RolesGuard)
+	//@Roles('admin')
+	//@UseGuards(AuthGuard, RolesGuard)
 	async createActor(@Body() body: CreateActorDto): Promise<ActorResponse> {
-		const { fistName, lastName, birthDate, photoUrl } = body;
+		const { firstName, lastName, birthDate, photoUrl } = body;
 
 		return this.actorService.createActor(
-			fistName,
+			firstName,
 			lastName,
 			birthDate,
 			photoUrl,
 		);
 	}
 
-	@Put()
+	@Put(':id')
 	@ApiOperation({ summary: 'Обновить актера' })
 	@ApiResponse({
 		status: 200,
 		type: ActorResponse,
 	})
-	@Roles('admin')
-	@UseGuards(AuthGuard, RolesGuard)
-	async updateActor(@Body() body: UpdateActorDto): Promise<ActorResponse> {
-		const { id, fistName, lastName, birthDate, photoUrl } = body;
+	//@Roles('admin')
+	//@UseGuards(AuthGuard, RolesGuard)
+	async updateActor(@Param('id', ParseIntPipe) id: number, @Body() body: CreateActorDto): Promise<ActorResponse> {
+		const { firstName, lastName, birthDate, photoUrl } = body;
 
 		return this.actorService.updateActor(
 			id,
-			fistName,
+			firstName,
 			lastName,
 			birthDate,
 			photoUrl,
 		);
 	}
 
-	@Delete()
+	@Delete(':id')
 	@ApiOperation({ summary: 'Удалить актера' })
 	@ApiResponse({
 		status: 200,
 		type: ActorResponse,
 	})
-	@Roles('admin')
-	@UseGuards(AuthGuard, RolesGuard)
+	//@Roles('admin')
+	//@UseGuards(AuthGuard, RolesGuard)
 	async deleteActor(
-		@Query('id', ParseIntPipe) id: number,
+		@Param('id', ParseIntPipe) id: number,
 	): Promise<ActorResponse> {
 		return this.actorService.deleteActor(id);
 	}

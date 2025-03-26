@@ -1,29 +1,30 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-validator";
+import { Type } from "class-transformer";
+import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from "class-validator";
 
-export class PaginationMeta {
+export class PaginationDto {
     @ApiProperty({
-        example: 1
-    })
-    page: number
-
-    @ApiProperty({
+        required: false,
         example: 20
     })
-    limit: number
+    @IsInt()
+    @Min(1)
+    @IsOptional()
+    @Type(() => Number)
+    limit?: number
 
     @ApiProperty({
-        example: 160
+        required: false,
+        example: 5,
     })
-    total: number
-
-    @ApiProperty({
-        example: 8
-    })
-    totalPages: number
+    @IsInt()
+    @Min(1)
+    @IsOptional()
+    @Type(() => Number)
+    cursor?: number
 }
 
-export class ActorForMovieResponse {
+export class ActorResponse {
     @ApiProperty({
         example: 1
     })
@@ -38,9 +39,7 @@ export class ActorForMovieResponse {
         example: 'DiCaprio'
     })
     lastName: string 
-}
 
-export class ActorResponse extends ActorForMovieResponse {
     @ApiProperty({
         example: '2023-03-23T00:00:00.000Z'
     })
@@ -56,19 +55,21 @@ export class GetAllActorsResponse {
     @ApiProperty({ type: [ActorResponse]})
     data: ActorResponse[];
   
-    @ApiProperty({ type: PaginationMeta})
-    meta: PaginationMeta;
+    @ApiProperty({
+        example: 2
+    })
+    cursor: number | null
   }
 
 export class CreateActorDto {
     @ApiProperty()
-    @Length(1, 32)
+    @Length(1, 50)
     @IsNotEmpty()
     @IsString()
-    fistName: string
+    firstName: string
 
     @ApiProperty()
-    @Length(1, 32)
+    @Length(1, 50)
     @IsNotEmpty()
     @IsString()
     lastName: string
@@ -84,15 +85,7 @@ export class CreateActorDto {
     @ApiProperty({
         required: false
     })
-    @IsNotEmpty()
     @IsString()
     @IsOptional()
     photoUrl?: string
-}
-
-export class UpdateActorDto extends CreateActorDto {
-    @ApiProperty()
-    @Min(1)
-    @IsNumber()
-    id: number
 }
