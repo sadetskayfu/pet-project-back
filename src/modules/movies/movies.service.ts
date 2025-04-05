@@ -17,47 +17,58 @@ import {
 } from './dto';
 import { Prisma } from '@prisma/client';
 
-type RawMovie = Prisma.MovieGetPayload<{
-	include: {
+function createMovieForCardSelect() {
+	return {
+	  id: true,
+	  title: true,
+	  duration: true,
+	  countries: {
+		select: {
+		  country: true,
+		},
+	  },
+	  genres: {
+		select: {
+		  genre: true,
+		},
+	  },
+	  rating: true,
+	  totalReviews: true,
+	  releaseYear: true,
+	  cardImgUrl: true,
+	  ageLimit: true,
+	} satisfies Prisma.MovieSelect;
+  }
+
+  function createMovieSelect() {
+	return {
 		genres: {
 			select: {
-				genre: true;
-			};
-		};
+				genre: true
+			}
+		},
 		actors: {
 			select: {
-				actor: true;
-			};
-		};
+				actor: true
+			}
+		},
 		countries: {
 			select: {
-				country: true;
-			};
-		};
-	};
+				country: true
+			},
+		},
+	} satisfies Prisma.MovieSelect;
+  }
+
+const movieForCardSelect = createMovieForCardSelect();
+const movieSelect= createMovieSelect();
+
+type RawMovie = Prisma.MovieGetPayload<{
+	include: typeof movieSelect
 }>;
 
 type RawMovieForCard = Prisma.MovieGetPayload<{
-	select: {
-		id: true;
-		title: true;
-		duration: true;
-		countries: {
-			select: {
-				country: true;
-			};
-		};
-		genres: {
-			select: {
-				genre: true;
-			};
-		};
-		rating: true;
-		totalReviews: true;
-		releaseYear: true;
-		cardImgUrl: true;
-		ageLimit: true
-	};
+	select: typeof movieForCardSelect;
 }>;
 
 @Injectable()
@@ -168,23 +179,7 @@ export class MovieService {
 			where: {
 				id: movieId,
 			},
-			include: {
-				actors: {
-					select: {
-						actor: true,
-					},
-				},
-				genres: {
-					select: {
-						genre: true,
-					},
-				},
-				countries: {
-					select: {
-						country: true,
-					},
-				},
-			},
+			include: movieSelect
 		});
 
 		this.logger.log(`Found movie: ${JSON.stringify(movie)}`);
@@ -256,7 +251,9 @@ export class MovieService {
 			description,
 			ageLimit,
 			cardImgUrl,
+			posterUrl,
 			videoUrl,
+			trailerUrl,
 			releaseDate,
 			countries,
 			duration,
@@ -273,7 +270,9 @@ export class MovieService {
 					description,
 					ageLimit,
 					cardImgUrl,
+					posterUrl,
 					videoUrl,
+					trailerUrl,
 					releaseDate: new Date(releaseDate),
 					releaseYear: new Date(releaseDate).getFullYear(),
 					duration,
@@ -293,23 +292,7 @@ export class MovieService {
 						})),
 					},
 				},
-				include: {
-					genres: {
-						select: {
-							genre: true,
-						},
-					},
-					actors: {
-						select: {
-							actor: true,
-						},
-					},
-					countries: {
-						select: {
-							country: true,
-						},
-					},
-				},
+				include: movieSelect
 			});
 
 			const transformedMovie = await this.transformMovie(movie);
@@ -399,23 +382,7 @@ export class MovieService {
 						})),
 					},
 				},
-				include: {
-					genres: {
-						select: {
-							genre: true,
-						},
-					},
-					actors: {
-						select: {
-							actor: true,
-						},
-					},
-					countries: {
-						select: {
-							country: true,
-						},
-					},
-				},
+				include: movieSelect
 			});
 
 			const transformedMovie = await this.transformMovie(updatedMovie);
@@ -448,23 +415,7 @@ export class MovieService {
 			where: {
 				id,
 			},
-			include: {
-				genres: {
-					select: {
-						genre: true,
-					},
-				},
-				actors: {
-					select: {
-						actor: true,
-					},
-				},
-				countries: {
-					select: {
-						country: true,
-					},
-				},
-			},
+			include: movieSelect
 		});
 
 		const transformedMovie = await this.transformMovie(deletedMovie);
@@ -620,26 +571,7 @@ export class MovieService {
 						: {},
 				],
 			},
-			select: {
-				id: true,
-				title: true,
-				duration: true,
-				countries: {
-					select: {
-						country: true,
-					},
-				},
-				genres: {
-					select: {
-						genre: true,
-					},
-				},
-				rating: true,
-				totalReviews: true,
-				releaseYear: true,
-				cardImgUrl: true,
-				ageLimit: true
-			},
+			select: movieForCardSelect,
 			orderBy,
 		});
 
@@ -665,5 +597,57 @@ export class MovieService {
 			data: transformedMovies,
 			nextCursor,
 		};
+	}
+
+	async getLastMovies(limit: number, userId?: number): Promise<MovieForCardResponse[]> {
+		const movies = await this.db.movie.findMany({
+			take: limit,
+			select: movieForCardSelect,
+			orderBy: { id: 'desc' }
+		})
+
+		const transformedMovies = this.transformMoviesForCard(movies, userId)
+
+		return transformedMovies
+	}
+
+	async getHighRatedMovies(limit: number, userId?: number): Promise<MovieForCardResponse[]> {
+		const movies = await this.db.movie.findMany({
+			take: limit,
+			select: movieForCardSelect,
+			orderBy: { rating: 'desc' }
+		})
+
+		const transformedMovies = this.transformMoviesForCard(movies, userId)
+
+		return transformedMovies
+	}
+
+	async getPopularMovies(limit: number, userId?: number): Promise<MovieForCardResponse[]> {
+		const movies = await this.db.movie.findMany({
+			take: limit,
+			select: movieForCardSelect,
+			orderBy: { totalReviews: 'desc' }
+		})
+
+		const transformedMovies = this.transformMoviesForCard(movies, userId)
+
+		return transformedMovies
+	}
+
+	async getMoviesByGenres(limit: number, genres: string, userId?: number): Promise<MovieForCardResponse[]> {
+		const genreList = genres.split('+');
+
+		const movies = await this.db.movie.findMany({
+			take: limit,
+			where: {
+				genres: {some: {genre: {name: {in: genreList}}}}
+			},
+			select: movieForCardSelect,
+		})
+
+		const transformedMovies = this.transformMoviesForCard(movies, userId)
+
+		return transformedMovies
 	}
 }

@@ -20,19 +20,25 @@ import {
 import { Prisma } from '@prisma/client';
 import { ReviewService } from '../reviews/reviews.service';
 
-type RawComment = Prisma.CommentGetPayload<{
-	include: {
+function createUserSelect() {
+	return {
 		user: {
 			select: {
-				id: true;
-				country: true;
-				displayName: true;
-				email: true;
-				avatarUrl: true;
-                totalReviews: true
-			};
-		};
-	};
+				id: true,
+				country: true,
+				displayName: true,
+				email: true,
+				avatarUrl: true,
+				totalReviews: true
+			}
+		},
+	} satisfies Prisma.ReviewSelect;
+}
+
+const userSelect = createUserSelect()
+
+type RawComment = Prisma.CommentGetPayload<{
+	include: typeof userSelect
 }>;
 
 @Injectable()
@@ -311,18 +317,7 @@ export class CommentService {
 				reviewId,
 			},
 			orderBy: { id: 'desc' },
-			include: {
-				user: {
-					select: {
-						id: true,
-						country: true,
-						displayName: true,
-						email: true,
-						avatarUrl: true,
-                        totalReviews: true
-					},
-				},
-			},
+			include: userSelect,
 		});
 
 		const transformedComments = await this.transformComments(
@@ -376,18 +371,7 @@ export class CommentService {
                         },
                     },
                 },
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            country: true,
-                            displayName: true,
-                            email: true,
-                            avatarUrl: true,
-                            totalReviews: true
-                        },
-                    },
-                },
+                include: userSelect
             });
 
             const updatedReview =  await this.reviewService.updateTotalComments(reviewId, true)

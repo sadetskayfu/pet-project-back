@@ -152,6 +152,16 @@ export class MovieResponse extends MovieForCardResponse {
         example: 'https://example.com/photo.jpg'
     })
     videoUrl: string
+
+    @ApiProperty({
+        example: 'https://example.com/photo.jpg'
+    })
+    trailerUrl: string
+
+    @ApiProperty({
+        example: 'https://example.com/photo.jpg'
+    })
+    posterUrl: string
 }
 
 export class GetMoviesResponse {
@@ -189,7 +199,17 @@ export class CreateMovieDto {
     @ApiProperty()
     @IsNotEmpty()
     @IsString()
+    posterUrl: string
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
     videoUrl: string
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    trailerUrl: string
 
 	@ApiProperty({
 		example: '2010-07-16',

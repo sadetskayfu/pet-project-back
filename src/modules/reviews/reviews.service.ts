@@ -27,19 +27,46 @@ import {
 import { Prisma } from '@prisma/client';
 import { UserService } from '../users/users.service';
 
-type RawReview = Prisma.ReviewGetPayload<{
-	include: {
+function createUserSelect() {
+	return {
 		user: {
 			select: {
-				id: true;
-				country: true;
-				displayName: true;
-				email: true;
-				avatarUrl: true;
+				id: true,
+				country: true,
+				displayName: true,
+				email: true,
+				avatarUrl: true,
 				totalReviews: true
-			};
-		};
-	};
+			}
+		},
+	} satisfies Prisma.ReviewSelect;
+}
+
+function createReviewCardSelect() {
+	return {
+		id: true,
+		message: true,
+		rating: true,
+		createdAt: true,
+		userId: true,
+		user: {
+			select: {
+				id: true,
+				email: true,
+				displayName: true,
+				avatarUrl: true,
+				country: true,
+				totalReviews: true
+			}
+		}
+	} satisfies Prisma.ReviewSelect;
+}
+  
+const userSelect = createUserSelect()
+const reviewCardSelect = createReviewCardSelect()
+
+type RawReview = Prisma.ReviewGetPayload<{
+	include: typeof userSelect
 }>;
 
 @Injectable()
@@ -392,18 +419,7 @@ export class ReviewService {
 				comments: userId && meCommented ? { some: { userId } } : {},
 			},
 			orderBy,
-			include: {
-				user: {
-					select: {
-						id: true,
-						country: true,
-						displayName: true,
-						email: true,
-						avatarUrl: true,
-						totalReviews: true
-					},
-				},
-			},
+			include: userSelect
 		});
 
 		const transformedReviews = await this.transformReviews(reviews, userId);
@@ -435,23 +451,7 @@ export class ReviewService {
 			where: {
 				movieId
 			},
-			select: {
-				id: true,
-				message: true,
-				rating: true,
-				createdAt: true,
-				userId: true,
-				user: {
-					select: {
-						id: true,
-						email: true,
-						displayName: true,
-						avatarUrl: true,
-						country: true,
-						totalReviews: true
-					}
-				}
-			},
+			select: reviewCardSelect,
 			orderBy: { id: 'desc' }
 		})
 
@@ -464,23 +464,7 @@ export class ReviewService {
 			where: {
 				movieId
 			},
-			select: {
-				id: true,
-				message: true,
-				rating: true,
-				createdAt: true,
-				userId: true,
-				user: {
-					select: {
-						id: true,
-						email: true,
-						displayName: true,
-						avatarUrl: true,
-						country: true,
-						totalReviews: true
-					}
-				}
-			},
+			select: reviewCardSelect,
 			orderBy: [{ totalLikes: 'desc'}, { totalComments: 'desc' }]
 		})
 
@@ -491,21 +475,7 @@ export class ReviewService {
 		const reviews = await this.db.review.findMany({
 			take: limit,
 			select: {
-				id: true,
-				message: true,
-				rating: true,
-				createdAt: true,
-				userId: true,
-				user: {
-					select: {
-						id: true,
-						email: true,
-						displayName: true,
-						avatarUrl: true,
-						country: true,
-						totalReviews: true
-					}
-				},
+				...reviewCardSelect,
 				movie: {
 					select: {
 						title: true
@@ -524,21 +494,7 @@ export class ReviewService {
 		const reviews = await this.db.review.findMany({
 			take: limit,
 			select: {
-				id: true,
-				message: true,
-				rating: true,
-				createdAt: true,
-				userId: true,
-				user: {
-					select: {
-						id: true,
-						email: true,
-						displayName: true,
-						avatarUrl: true,
-						country: true,
-						totalReviews: true
-					}
-				},
+				...reviewCardSelect,
 				movie: {
 					select: {
 						title: true
@@ -558,18 +514,7 @@ export class ReviewService {
 			where: {
 				userId_movieId: { userId, movieId },
 			},
-			include: {
-				user: {
-					select: {
-						id: true,
-						country: true,
-						displayName: true,
-						email: true,
-						avatarUrl: true,
-						totalReviews: true
-					},
-				},
-			},
+			include: userSelect,
 		});
 
 		if(review) {
@@ -601,17 +546,7 @@ export class ReviewService {
 						},
 					},
 				},
-				include: {
-					user: {
-						select: {
-							id: true,
-							country: true,
-							displayName: true,
-							email: true,
-							avatarUrl: true,
-						},
-					},
-				},
+				include: userSelect
 			});
 
 			const updatedMovie = await this.movieService.updateRating(movieId, rating, true);

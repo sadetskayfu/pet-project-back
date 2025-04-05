@@ -18,11 +18,12 @@ import {
 	CreateMovieDto,
 	FilterDto,
 	GetMoviesResponse,
+	MovieForCardResponse,
 	MovieResponse,
 	PaginationDto,
 	SortingDto,
 } from './dto';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/modules/auth/auth.guard';
 import { RolesGuard } from 'src/modules/auth/roles.guard';
 import { Roles } from 'src/modules/auth/roles.decorator';
@@ -53,7 +54,6 @@ export class MovieController {
 		status: 200,
 		type: MovieResponse,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	// @Roles('admin')
 	// @UseGuards(AuthGuard, RolesGuard)
 	async updateMovie(@Param('id', ParseIntPipe) id: number, @Body() body: CreateMovieDto): Promise<MovieResponse> {
@@ -80,13 +80,15 @@ export class MovieController {
 		status: 200,
 		type: MovieResponse,
 	})
+	@UseGuards(OptionalAuthGuard)
 	async getMovieById(
 		@Param('id', ParseIntPipe) id: number,
+		@SessionInfo() session?: SessionInfoDto,
 	): Promise<MovieResponse> {
-		return this.movieService.getMovieById(id);
+		return this.movieService.getMovieById(id, session?.id);
 	}
 
-	@Get()
+	@Get('all')
 	@ApiOperation({ summary: 'Получить фильмы' })
 	@ApiResponse({
 		status: 200,
@@ -111,5 +113,106 @@ export class MovieController {
 			data,
 			nextCursor,
 		};
+	}
+
+	@Get('by-genres')
+	@ApiOperation({ summary: 'Получить фильмы по жанрам' })
+	@ApiResponse({
+		status: 200,
+		type: [MovieForCardResponse],
+	})
+	@ApiQuery({
+		name: 'limit',
+		type: Number,
+		required: false,
+		description: 'Default limit 30',
+	})
+	@ApiQuery({
+		name: 'genres',
+		type: String,
+		required: true,
+		description: 'Жанры (разделенные "+")',
+		example: 'action+drama'
+	})
+	@UseGuards(OptionalAuthGuard)
+	async getMoviesByGenres(
+		@Query('limit', new ParseIntPipe({ optional: true })) limit: number = 30,
+		@Query('genres') genres: string,
+		@SessionInfo() session?: SessionInfoDto,
+	): Promise<MovieForCardResponse[]> {
+		return this.movieService.getMoviesByGenres(
+			limit,
+			genres,
+			session?.id
+		);
+	}
+
+	@Get('hight-rated')
+	@ApiOperation({ summary: 'Получить фильмы с высокой оценкой' })
+	@ApiResponse({
+		status: 200,
+		type: [MovieForCardResponse],
+	})
+	@ApiQuery({
+		name: 'limit',
+		type: Number,
+		required: false,
+		description: 'Default limit 30',
+	})
+	@UseGuards(OptionalAuthGuard)
+	async getHighRatedMovies(
+		@Query('limit', new ParseIntPipe({ optional: true })) limit: number = 30,
+		@SessionInfo() session?: SessionInfoDto,
+	): Promise<MovieForCardResponse[]> {
+		return this.movieService.getHighRatedMovies(
+			limit,
+			session?.id
+		);
+	}
+
+	@Get('popular')
+	@ApiOperation({ summary: 'Получить фильмы с наибольшим кол-вом отзывов' })
+	@ApiResponse({
+		status: 200,
+		type: [MovieForCardResponse],
+	})
+	@ApiQuery({
+		name: 'limit',
+		type: Number,
+		required: false,
+		description: 'Default limit 30',
+	})
+	@UseGuards(OptionalAuthGuard)
+	async getPopularMovies(
+		@Query('limit', new ParseIntPipe({ optional: true })) limit: number = 30,
+		@SessionInfo() session?: SessionInfoDto,
+	): Promise<MovieForCardResponse[]> {
+		return this.movieService.getPopularMovies(
+			limit,
+			session?.id
+		);
+	}
+
+	@Get('last')
+	@ApiOperation({ summary: 'Получить последне вышедшие фильмы' })
+	@ApiResponse({
+		status: 200,
+		type: [MovieForCardResponse],
+	})
+	@ApiQuery({
+		name: 'limit',
+		type: Number,
+		required: false,
+		description: 'Default limit 30',
+	})
+	@UseGuards(OptionalAuthGuard)
+	async getLastMovies(
+		@Query('limit', new ParseIntPipe({ optional: true })) limit: number = 30,
+		@SessionInfo() session?: SessionInfoDto,
+	): Promise<MovieForCardResponse[]> {
+		return this.movieService.getLastMovies(
+			limit,
+			session?.id
+		);
 	}
 }

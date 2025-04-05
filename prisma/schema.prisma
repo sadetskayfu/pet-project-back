@@ -176,8 +176,8 @@ model Movie {
   duration     Int
   cardImgUrl   String
   videoUrl     String
-  // trailerUlr   String
-  // posterUrl    String
+  trailerUrl   String
+  posterUrl    String
   countries    MovieCountries[]
   genres       MovieGenre[]
   reviews      Review[]
