@@ -8,15 +8,15 @@ import { DbService } from 'src/db/db.service';
 import { MovieService } from 'src/modules/movies/movies.service';
 import {
 	ReviewResponse,
-	SortingDto,
-	FilterDto,
-	PaginationDto,
+	ReviewFilterDto,
+	ReviewSortingDto,
+	ReviewPaginationDto,
+	ReviewCardForMovieResponse,
+	ReviewCardResponse,
 	ReviewCursorResponse,
 	GetReviewsForMovieResponse,
 	DeleteReviewResponse,
 	UpdateReviewResponse,
-	ReviewForCardResponse,
-	ReviewForCardResponseByMovieId,
 	CreateReviewResponse,
 	UpdateReviewTotalCommentsResponse,
 } from './dto';
@@ -346,9 +346,9 @@ export class ReviewService {
 
 	async getReviewsForMovie(
 		movieId: number,
-		filter: FilterDto,
-		sorting: SortingDto,
-		pagination: PaginationDto,
+		filter: ReviewFilterDto,
+		sorting: ReviewSortingDto,
+		pagination: ReviewPaginationDto,
 		userId?: number,
 	): Promise<GetReviewsForMovieResponse> {
 		const {
@@ -429,7 +429,7 @@ export class ReviewService {
 		};
 	}
 
-	async getLastReviewsForCardByMovieId(movieId: number, limit: number = 10): Promise<ReviewForCardResponseByMovieId[]> {
+	async getLastReviewsForMovie(movieId: number, limit: number): Promise<ReviewCardForMovieResponse[]> {
 		const reviews = await this.db.review.findMany({
 			take: limit,
 			where: {
@@ -458,7 +458,7 @@ export class ReviewService {
 		return reviews
 	}
 
-	async getPopularReviewsForCardByMovieId(movieId: number, limit: number = 10): Promise<ReviewForCardResponseByMovieId[]> {
+	async getPopularReviewsForMovie(movieId: number, limit: number): Promise<ReviewCardForMovieResponse[]> {
 		const reviews = await this.db.review.findMany({
 			take: limit,
 			where: {
@@ -481,13 +481,13 @@ export class ReviewService {
 					}
 				}
 			},
-			orderBy: { totalLikes: 'desc', totalComments: 'desc' }
+			orderBy: [{ totalLikes: 'desc'}, { totalComments: 'desc' }]
 		})
 
 		return reviews
 	}
 
-	async getLastReviewsForCard(limit: number = 30): Promise<ReviewForCardResponse[]> {
+	async getLastReviews(limit: number): Promise<ReviewCardResponse[]> {
 		const reviews = await this.db.review.findMany({
 			take: limit,
 			select: {
@@ -514,11 +514,13 @@ export class ReviewService {
 			},
 			orderBy: { id: 'desc' }
 		})
+
+		
 
 		return reviews.map((review) => ({...review, movieTitle: review.movie.title}))
 	}
 
-	async getPopularReviewsForCard(limit: number = 30): Promise<ReviewForCardResponse[]> {
+	async getPopularReviews(limit: number): Promise<ReviewCardResponse[]> {
 		const reviews = await this.db.review.findMany({
 			take: limit,
 			select: {
@@ -543,7 +545,7 @@ export class ReviewService {
 					}
 				}
 			},
-			orderBy: { totalLikes: 'desc', totalComments: 'desc' }
+			orderBy: [{ totalLikes: 'desc' }, {totalComments: 'desc'}]
 		})
 
 		return reviews.map((review) => ({...review, movieTitle: review.movie.title}))

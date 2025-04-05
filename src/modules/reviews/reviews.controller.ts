@@ -18,13 +18,13 @@ import {
 	CreateReviewDto,
 	CreateReviewResponse,
 	DeleteReviewResponse,
-	FilterDto,
 	GetReviewsForMovieResponse,
-	PaginationDto,
-	ReviewForCardResponse,
-	ReviewForCardResponseByMovieId,
+	ReviewCardForMovieResponse,
+	ReviewCardResponse,
+	ReviewFilterDto,
+	ReviewPaginationDto,
 	ReviewResponse,
-	SortingDto,
+	ReviewSortingDto,
 	ToggleDislikeDto,
 	ToggleLikeDto,
 	UpdateReviewDto,
@@ -41,7 +41,7 @@ import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 export class ReviewController {
 	constructor(private reviewService: ReviewService) {}
 
-	@Get(':movieId')
+	@Get('all/:movieId')
 	@ApiOperation({
 		summary: 'Получить отзывы к фильму',
 	})
@@ -52,10 +52,10 @@ export class ReviewController {
 	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(OptionalAuthGuard)
 	async getReviewsForMovie(
-		@Param('movieId', ParseIntPipe) movieId: number,
-		@Query() pagination: PaginationDto,
-		@Query() sorting: SortingDto,
-		@Query() filter: FilterDto,
+		@Param('movieId') movieId: number,
+		@Query() pagination: ReviewPaginationDto,
+		@Query() sorting: ReviewSortingDto,
+		@Query() filter: ReviewFilterDto,
 		@SessionInfo() session?: SessionInfoDto,
 	): Promise<GetReviewsForMovieResponse> {
 		const { data, nextCursor } =
@@ -80,7 +80,6 @@ export class ReviewController {
 		status: 200,
 		type: ReviewResponse,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(OptionalAuthGuard)
 	async getUserReview(
 		@Param('movieId', ParseIntPipe) movieId: number,
@@ -95,7 +94,7 @@ export class ReviewController {
 	})
 	@ApiResponse({
 		status: 200,
-		type: [ReviewForCardResponseByMovieId],
+		type: [ReviewCardForMovieResponse],
 	})
 	@ApiQuery({
 		name: 'limit',
@@ -103,12 +102,11 @@ export class ReviewController {
 		required: false,
 		description: 'Default limit 10'
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
-	async getPopularReviewsForCardByMovieId(
+	async getPopularReviewsForMovie(
 		@Param('movieId', ParseIntPipe) movieId: number,
-		@Query('limit', ParseIntPipe) limit?: number,
-	): Promise<ReviewForCardResponseByMovieId[]> {
-		return this.reviewService.getPopularReviewsForCardByMovieId(
+		@Query('limit', new ParseIntPipe({optional: true})) limit: number = 10,
+	): Promise<ReviewCardForMovieResponse[]> {
+		return this.reviewService.getPopularReviewsForMovie(
 			movieId,
 			limit,
 		);
@@ -120,7 +118,7 @@ export class ReviewController {
 	})
 	@ApiResponse({
 		status: 200,
-		type: [ReviewForCardResponseByMovieId],
+		type: [ReviewCardForMovieResponse],
 	})
 	@ApiQuery({
 		name: 'limit',
@@ -128,12 +126,11 @@ export class ReviewController {
 		required: false,
 		description: 'Default limit 10'
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
-	async getLastReviewsForCardByMovieId(
+	async getLastReviewsForMovie(
 		@Param('movieId', ParseIntPipe) movieId: number,
-		@Query('limit', ParseIntPipe) limit?: number,
-	): Promise<ReviewForCardResponseByMovieId[]> {
-		return this.reviewService.getLastReviewsForCardByMovieId(
+		@Query('limit', new ParseIntPipe({optional: true})) limit: number = 10,
+	): Promise<ReviewCardForMovieResponse[]> {
+		return this.reviewService.getLastReviewsForMovie(
 			movieId,
 			limit,
 		);
@@ -145,7 +142,7 @@ export class ReviewController {
 	})
 	@ApiResponse({
 		status: 200,
-		type: [ReviewForCardResponse],
+		type: [ReviewCardResponse],
 	})
 	@ApiQuery({
 		name: 'limit',
@@ -153,11 +150,10 @@ export class ReviewController {
 		required: false,
 		description: 'Default limit 30'
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
-	async getPopularReviewsForCard(
-		@Query('limit', ParseIntPipe) limit?: number,
-	): Promise<ReviewForCardResponse[]> {
-		return this.reviewService.getPopularReviewsForCard(
+	async getPopularReviews(
+		@Query('limit', new ParseIntPipe({optional: true})) limit: number = 30,
+	): Promise<ReviewCardResponse[]> {
+		return this.reviewService.getPopularReviews(
 			limit,
 		);
 	}
@@ -168,19 +164,19 @@ export class ReviewController {
 	})
 	@ApiResponse({
 		status: 200,
-		type: [ReviewForCardResponse],
+		type: [ReviewCardResponse],
 	})
 	@ApiQuery({
 		name: 'limit',
 		type: Number,
 		required: false,
-		description: 'Default limit 30'
+		description: 'Default limit 30',
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
-	async getLastReviewsForCard(
-		@Query('limit', ParseIntPipe) limit?: number,
-	): Promise<ReviewForCardResponse[]> {
-		return this.reviewService.getLastReviewsForCard(
+	async getLastReviews(
+		@Query('limit', new ParseIntPipe({optional: true})) limit: number = 30,
+	): Promise<ReviewCardResponse[]> {
+
+		return this.reviewService.getLastReviews(
 			limit,
 		);
 	}
@@ -214,9 +210,8 @@ export class ReviewController {
 	})
 	@ApiResponse({
 		status: 200,
-		type: ReviewResponse,
+		type: UpdateReviewResponse,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
 	async updateReview(
 		@Param('id', ParseIntPipe) id: number,
@@ -236,7 +231,6 @@ export class ReviewController {
 		status: 200,
 		type: DeleteReviewResponse,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
 	async deleteReview(
 		@Param('id', ParseIntPipe) id: number,
@@ -252,7 +246,6 @@ export class ReviewController {
 	@ApiResponse({
 		status: 200,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
 	async toggleLike(
 		@Param('reviewId', ParseIntPipe) reviewId: number,
@@ -269,7 +262,6 @@ export class ReviewController {
 	@ApiResponse({
 		status: 200,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
 	async toggleDisLike(
 		@Param('reviewId', ParseIntPipe) reviewId: number,

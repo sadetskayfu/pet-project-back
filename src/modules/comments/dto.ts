@@ -4,7 +4,7 @@ import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from 
 import { CountryResponse } from "../countries/dto"
 import { UpdateReviewTotalCommentsResponse } from "../reviews/dto"
 
-export class PaginationDto {
+export class CommentPaginationDto {
     @ApiProperty({
         required: false,
         default: 10
@@ -40,7 +40,7 @@ export class CreateCommentDto extends UpdateCommentDto {
     reviewId: number
 }
 
-export class UserResponse {
+export class CommentUserResponse {
     @ApiProperty({
         example: 1
     })
@@ -120,9 +120,9 @@ export class CommentResponse {
     isDisliked: boolean
 
     @ApiProperty({
-        type: UserResponse
+        type: CommentUserResponse
     })
-    user: UserResponse
+    user: CommentUserResponse
 }
 
 export class GetCommentsForReviewResponse {

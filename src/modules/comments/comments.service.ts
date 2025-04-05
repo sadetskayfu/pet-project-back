@@ -10,7 +10,7 @@ import {
 	CreateCommentResponse,
 	DeleteCommentResponse,
 	GetCommentsForReviewResponse,
-	PaginationDto,
+	CommentPaginationDto,
     UpdateCommentResponse,
 } from './dto';
 import {
@@ -298,7 +298,7 @@ export class CommentService {
 
 	async getCommentsForReview(
 		reviewId: number,
-		pagination: PaginationDto,
+		pagination: CommentPaginationDto,
 		userId?: number,
 	): Promise<GetCommentsForReviewResponse> {
 		const { limit = 10, cursor } = pagination;

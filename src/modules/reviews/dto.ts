@@ -22,24 +22,27 @@ export class ReviewCursorResponse {
     totalDislikes?: number
 }
 
-export class FilterDto {
+export class ReviewFilterDto {
     @ApiProperty({ required: false})
     @IsOptional()
     @IsBoolean()
+    @Type(() => Boolean)
     meLiked?: boolean
 
     @ApiProperty({ required: false})
     @IsOptional()
     @IsBoolean()
+    @Type(() => Boolean)
     meDisliked?: boolean
 
     @ApiProperty({ required: false})
     @IsOptional()
     @IsBoolean()
+    @Type(() => Boolean)
     meCommented?: boolean
 }
 
-export class SortingDto {
+export class ReviewSortingDto {
     @ApiProperty({ required: false, enum: ['likes', 'dislikes'] })
     @IsOptional()
     @IsIn(['likes', 'dislikes'])
@@ -55,7 +58,7 @@ export class SortingDto {
     order?: 'desc' | 'asc'
 }
 
-export class PaginationDto {
+export class ReviewPaginationDto {
     @ApiProperty({
         required: false
     })
@@ -118,7 +121,7 @@ export class CreateReviewDto extends UpdateReviewDto {
     movieId: number
 }
 
-export class UserResponse {
+export class ReviewUserResponse {
     @ApiProperty({
         example: 1
     })
@@ -146,7 +149,7 @@ export class UserResponse {
     totalReviews: number
 }
 
-export class ReviewForCardResponseByMovieId {
+export class ReviewCardForMovieResponse {
     @ApiProperty({
         example: 1
     })
@@ -172,19 +175,19 @@ export class ReviewForCardResponseByMovieId {
     userId: number
 
     @ApiProperty({
-        type: UserResponse
+        type: ReviewUserResponse
     })
-    user: UserResponse
+    user: ReviewUserResponse
 }
 
-export class ReviewForCardResponse extends ReviewForCardResponseByMovieId {
+export class ReviewCardResponse extends ReviewCardForMovieResponse {
     @ApiProperty({
         example: 'Matrix'
     })
     movieTitle: string
 }
 
-export class ReviewResponse extends ReviewForCardResponseByMovieId {
+export class ReviewResponse extends ReviewCardForMovieResponse {
     @ApiProperty({
         example: false
     })
@@ -236,7 +239,7 @@ export class GetReviewsForMovieResponse {
     nextCursor: ReviewCursorResponse | null;
 }
 
-class UpdatedUser {
+class DeleteReviewUserResponse {
     @ApiProperty({
         example: 15
     })
@@ -255,9 +258,9 @@ export class DeleteReviewResponse {
     movie: UpdateMovieRatingResponse
 
     @ApiProperty({
-        type: UpdatedUser
+        type: DeleteReviewUserResponse
     })
-    user: UpdatedUser
+    user: DeleteReviewUserResponse
 }
 
 export class CreateReviewResponse extends ReviewResponse{

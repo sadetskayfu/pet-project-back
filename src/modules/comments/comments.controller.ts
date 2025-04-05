@@ -23,7 +23,7 @@ import {
 	CreateCommentResponse,
 	DeleteCommentResponse,
 	GetCommentsForReviewResponse,
-	PaginationDto,
+	CommentPaginationDto,
 	ToggleDislikeDto,
 	ToggleLikeDto,
 	UpdateCommentDto,
@@ -36,7 +36,7 @@ import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 export class CommentController {
 	constructor(private commentService: CommentService) {}
 
-	@Get(':reviewId')
+	@Get('all/:reviewId')
 	@ApiOperation({
 		summary: 'Получить комментарии к отзыву',
 	})
@@ -47,8 +47,8 @@ export class CommentController {
 	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(OptionalAuthGuard)
 	async getCommentsForReview(
-		@Param('reviewId', ParseIntPipe) reviewId: number,
-		@Query() pagination: PaginationDto,
+		@Param('reviewId') reviewId: number,
+		@Query() pagination: CommentPaginationDto,
 		@SessionInfo() session?: SessionInfoDto,
 	): Promise<GetCommentsForReviewResponse> {
 		const { data, nextCursor } =
@@ -91,9 +91,8 @@ export class CommentController {
 		type: UpdateCommentResponse,
 	})
 	@UseGuards(AuthGuard)
-	@UsePipes(new ValidationPipe({ transform: true }))
 	async updateReview(
-		@Param('commentId') commentId: number,
+		@Param('commentId', ParseIntPipe) commentId: number,
 		@Body() body: UpdateCommentDto,
 		@SessionInfo() session: SessionInfoDto,
 	): Promise<UpdateCommentResponse> {
@@ -115,7 +114,6 @@ export class CommentController {
 		type: DeleteCommentResponse,
 	})
 	@UseGuards(AuthGuard)
-	@UsePipes(new ValidationPipe({ transform: true }))
 	async deleteReview(
 		@Param('commentId', ParseIntPipe) commentId: number,
 		@SessionInfo() session: SessionInfoDto,
@@ -130,7 +128,6 @@ export class CommentController {
 	@ApiResponse({
 		status: 200,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
 	async toggleLike(
 		@Param('commentId', ParseIntPipe) commentId: number,
@@ -147,7 +144,6 @@ export class CommentController {
 	@ApiResponse({
 		status: 200,
 	})
-	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
 	async toggleDisLike(
 		@Param('commentId', ParseIntPipe) commentId: number,
