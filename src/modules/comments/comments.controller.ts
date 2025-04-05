@@ -3,7 +3,9 @@ import {
 	Controller,
 	Delete,
 	Get,
+	Param,
 	ParseIntPipe,
+	Patch,
 	Post,
 	Put,
 	Query,
@@ -17,21 +19,24 @@ import { SessionInfoDto } from 'src/modules/auth/dto';
 import { AuthGuard } from 'src/modules/auth/auth.guard';
 import { CommentService } from './comments.service';
 import {
-	CommentResponse,
 	CreateCommentDto,
-	DeletedCommentResponse,
+	CreateCommentResponse,
+	DeleteCommentResponse,
 	GetCommentsForReviewResponse,
-	OrderDto,
 	PaginationDto,
+	ToggleDislikeDto,
+	ToggleLikeDto,
 	UpdateCommentDto,
+	UpdateCommentResponse,
 } from './dto';
+import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 
 @ApiTags('Comments')
 @Controller('comments')
 export class CommentController {
 	constructor(private commentService: CommentService) {}
 
-	@Get()
+	@Get(':reviewId')
 	@ApiOperation({
 		summary: 'Получить комментарии к отзыву',
 	})
@@ -40,21 +45,21 @@ export class CommentController {
 		type: GetCommentsForReviewResponse,
 	})
 	@UsePipes(new ValidationPipe({ transform: true }))
+	@UseGuards(OptionalAuthGuard)
 	async getCommentsForReview(
-		@Query('reviewId', ParseIntPipe) reviewId: number,
+		@Param('reviewId', ParseIntPipe) reviewId: number,
 		@Query() pagination: PaginationDto,
-		@Query() order: OrderDto,
+		@SessionInfo() session?: SessionInfoDto,
 	): Promise<GetCommentsForReviewResponse> {
-		const { comments, nextCursor } =
+		const { data, nextCursor } =
 			await this.commentService.getCommentsForReview(
 				reviewId,
-				pagination.limit,
-				pagination.cursor,
-				order.order,
+				pagination,
+				session?.id
 			);
 
 		return {
-			data: comments,
+			data,
 			nextCursor,
 		};
 	}
@@ -65,32 +70,34 @@ export class CommentController {
 	})
 	@ApiResponse({
 		status: 201,
-		type: CommentResponse,
+		type: CreateCommentResponse,
 	})
 	@UseGuards(AuthGuard)
 	async createReview(
 		@Body() body: CreateCommentDto,
 		@SessionInfo() session: SessionInfoDto,
-	): Promise<CommentResponse> {
+	): Promise<CreateCommentResponse> {
 		const { reviewId, message } = body;
 
 		return this.commentService.createComment(session.id, reviewId, message);
 	}
 
-	@Put()
+	@Put(':commentId')
 	@ApiOperation({
 		summary: 'Обновить комментарий',
 	})
 	@ApiResponse({
 		status: 200,
-		type: CommentResponse,
+		type: UpdateCommentResponse,
 	})
 	@UseGuards(AuthGuard)
+	@UsePipes(new ValidationPipe({ transform: true }))
 	async updateReview(
+		@Param('commentId') commentId: number,
 		@Body() body: UpdateCommentDto,
 		@SessionInfo() session: SessionInfoDto,
-	): Promise<CommentResponse> {
-		const { commentId, message } = body;
+	): Promise<UpdateCommentResponse> {
+		const { message } = body;
 
 		return this.commentService.updateComment(
 			session.id,
@@ -99,28 +106,54 @@ export class CommentController {
 		);
 	}
 
-	@Delete()
+	@Delete(':commentId')
 	@ApiOperation({
 		summary: 'Удалить комментарий',
 	})
 	@ApiResponse({
 		status: 200,
-		type: DeletedCommentResponse,
+		type: DeleteCommentResponse,
 	})
 	@UseGuards(AuthGuard)
+	@UsePipes(new ValidationPipe({ transform: true }))
 	async deleteReview(
-		@Query('commentId', ParseIntPipe) commentId: number,
+		@Param('commentId', ParseIntPipe) commentId: number,
 		@SessionInfo() session: SessionInfoDto,
-	): Promise<DeletedCommentResponse> {
+	): Promise<DeleteCommentResponse> {
 		return this.commentService.deleteComment(session.id, commentId);
 	}
 
-	@Put('likes')
+	@Patch(':commentId/like')
+	@ApiOperation({
+		summary: 'Поставить / убрать отзыв',
+	})
+	@ApiResponse({
+		status: 200,
+	})
+	@UsePipes(new ValidationPipe({ transform: true }))
 	@UseGuards(AuthGuard)
-	async toggleUserLike(
-		@Query('commentId', ParseIntPipe) commentId: number,
+	async toggleLike(
+		@Param('commentId', ParseIntPipe) commentId: number,
+		@Body() body: ToggleLikeDto,
 		@SessionInfo() session: SessionInfoDto,
 	) {
-		return this.commentService.toggleUserLike(session.id, commentId);
+		return this.commentService.toggleLike(session.id, commentId, body.isLiked)
+	}
+
+	@Patch(':commentId/dislike')
+	@ApiOperation({
+		summary: 'Поставить / убрать дизлайк',
+	})
+	@ApiResponse({
+		status: 200,
+	})
+	@UsePipes(new ValidationPipe({ transform: true }))
+	@UseGuards(AuthGuard)
+	async toggleDisLike(
+		@Param('commentId', ParseIntPipe) commentId: number,
+		@Body() body: ToggleDislikeDto,
+		@SessionInfo() session: SessionInfoDto,
+	) {
+		return this.commentService.toggleDislike(session.id, commentId, body.isDisliked)
 	}
 }

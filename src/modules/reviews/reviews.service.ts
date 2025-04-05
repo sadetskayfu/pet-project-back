@@ -2,133 +2,579 @@ import {
 	BadRequestException,
 	ForbiddenException,
 	Injectable,
-	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
 import { MovieService } from 'src/modules/movies/movies.service';
-import { ReviewLikeService } from 'src/modules/reviewLikes/reviewLikes.service';
-import { ReviewResponse } from './dto';
+import {
+	ReviewResponse,
+	SortingDto,
+	FilterDto,
+	PaginationDto,
+	ReviewCursorResponse,
+	GetReviewsForMovieResponse,
+	DeleteReviewResponse,
+	UpdateReviewResponse,
+	ReviewForCardResponse,
+	ReviewForCardResponseByMovieId,
+	CreateReviewResponse,
+	UpdateReviewTotalCommentsResponse,
+} from './dto';
+import {
+	isRecordNotFoundError,
+	isUniqueConstraintError,
+} from 'src/shared/helpers/errors/prisma-errors';
+import { Prisma } from '@prisma/client';
+import { UserService } from '../users/users.service';
+
+type RawReview = Prisma.ReviewGetPayload<{
+	include: {
+		user: {
+			select: {
+				id: true;
+				country: true;
+				displayName: true;
+				email: true;
+				avatarUrl: true;
+				totalReviews: true
+			};
+		};
+	};
+}>;
 
 @Injectable()
 export class ReviewService {
-	private readonly logger = new Logger(ReviewService.name);
-
 	constructor(
 		private db: DbService,
 		private movieService: MovieService,
-		private likeService: ReviewLikeService,
+		private userService: UserService
 	) {}
 
 	async findReviewById(id: number) {
-		this.logger.log(`Finding review by ID '${id}'`);
-
 		const review = await this.db.review.findUnique({
 			where: {
-				id,
+				id
+			},
+			select: {
+				userId: true
+			}
+		})
+
+		if(!review) {
+			throw new NotFoundException('Review does not exist')
+		}
+
+		return review
+	}
+
+	async addLike(userId: number, reviewId: number) {
+		try {
+			await this.db.reviewLike.create({
+				data: {
+					user: { connect: { id: userId } },
+					review: { connect: { id: reviewId } },
+				},
+			});
+
+			const userDislike = await this.db.reviewDislike.findUnique({
+				where: { userId_reviewId: { userId, reviewId } },
+				select: {
+					id: true,
+				},
+			});
+
+			if (userDislike) {
+				await this.db.reviewDislike.delete({
+					where: {
+						id: userDislike.id,
+					},
+				});
+			}
+
+			await this.db.review.update({
+				where: {
+					id: reviewId,
+				},
+				data: {
+					totalLikes: { increment: 1 },
+					totalDislikes: userDislike ? { decrement: 1 } : {},
+				},
+			});
+
+		} catch (error) {
+			if (isUniqueConstraintError(error)) {
+				throw new BadRequestException(
+					`User already has a like for this review`,
+				);
+			}
+
+			if (isRecordNotFoundError(error)) {
+				throw new NotFoundException('User or review does not exist');
+			}
+
+			throw error;
+		}
+	}
+
+	async removeLike(userId: number, reviewId: number) {
+		try {
+			await this.db.reviewLike.delete({
+				where: { userId_reviewId: { userId, reviewId } },
+				select: {
+					id: true,
+				},
+			});
+
+			await this.db.review.update({
+				where: {
+					id: reviewId,
+				},
+				data: {
+					totalLikes: { decrement: 1 },
+				},
+			});
+		} catch (error) {
+			if (isRecordNotFoundError(error)) {
+				throw new NotFoundException(
+					`The user doesn't have a like for this review`,
+				);
+			}
+		}
+	}
+
+	async addDislike(userId: number, reviewId: number) {
+		try {
+			await this.db.reviewDislike.create({
+				data: {
+					user: { connect: { id: userId } },
+					review: { connect: { id: reviewId } },
+				},
+				select: {
+					id: true,
+				},
+			});
+
+			const userLike = await this.db.reviewLike.findUnique({
+				where: { userId_reviewId: { userId, reviewId } },
+				select: {
+					id: true,
+				},
+			});
+
+			if (userLike) {
+				await this.db.reviewLike.delete({
+					where: {
+						id: userLike.id,
+					},
+				});
+			}
+
+			await this.db.review.update({
+				where: {
+					id: reviewId,
+				},
+				data: {
+					totalDislikes: { increment: 1 },
+					totalLikes: userLike ? { decrement: 1 } : {},
+				},
+			});
+		} catch (error) {
+			if (isUniqueConstraintError(error)) {
+				throw new BadRequestException(
+					`User already has a dislike for this review`,
+				);
+			}
+
+			if (isRecordNotFoundError(error)) {
+				throw new NotFoundException('User or review does not exist');
+			}
+
+			throw error;
+		}
+	}
+
+	async removeDislike(userId: number, reviewId: number) {
+		try {
+			await this.db.reviewDislike.delete({
+				where: { userId_reviewId: { userId, reviewId } },
+				select: {
+					id: true,
+				},
+			});
+
+			await this.db.review.update({
+				where: {
+					id: reviewId,
+				},
+				data: {
+					totalDislikes: { decrement: 1 },
+				},
+			});
+		} catch (error) {
+			if (isRecordNotFoundError(error)) {
+				throw new NotFoundException(
+					`The user doesn't have a dislike for this review`,
+				);
+			}
+		}
+	}
+
+	async toggleLike(userId: number, reviewId: number, isLiked: boolean) {
+		if (isLiked) {
+			return await this.removeLike(userId, reviewId);
+		} else {
+			return await this.addLike(userId, reviewId);
+		}
+	}
+
+	async toggleDislike(userId: number, reviewId: number, isDisliked: boolean) {
+		if (isDisliked) {
+			return await this.removeDislike(userId, reviewId);
+		} else {
+			return await this.addDislike(userId, reviewId);
+		}
+	}
+
+	async findLikedReviews(userId: number): Promise<Set<number>> {
+		const likedReviews = await this.db.review.findMany({
+			where: {
+				likes: {
+					some: {
+						userId,
+					},
+				},
 			},
 			select: {
 				id: true,
-				userId: true,
-				movieId: true,
-				rating: true
-			}
-		});
-
-		this.logger.log(`Found review: ${JSON.stringify(review)}`);
-
-		if (!review) {
-			throw new NotFoundException(
-				`Review with ID '${id}' does not exist`,
-			);
-		}
-
-		return review;
-	}
-
-	async findUserReview(userId: number, movieId: number) {
-		this.logger.log(`Finding review by user ID '${userId}'`);
-
-		const review = await this.db.review.findUnique({
-			where: {
-				userId,
-				movieId,
 			},
 		});
 
-		this.logger.log(`Found review: ${JSON.stringify(review)}`);
+		const likedReviewIds = likedReviews.map((review) => review.id);
 
-		if (!review) {
-			throw new NotFoundException(
-				`User review for movie with ID '${movieId}' does not exist`,
-			);
-		}
+		return new Set(likedReviewIds);
+	}
 
-		const userLike = await this.likeService.findUserLike(userId, review.id)
+	async findDislikedReviews(userId: number): Promise<Set<number>> {
+		const dislikedReviews = await this.db.review.findMany({
+			where: {
+				dislikes: {
+					some: {
+						userId,
+					},
+				},
+			},
+			select: {
+				id: true,
+			},
+		});
 
-		const reviewWithLike = {
+		const dislikedReviewIds = dislikedReviews.map((review) => review.id);
+
+		return new Set(dislikedReviewIds);
+	}
+
+	async findCommentedReviews(userId: number): Promise<Set<number>> {
+		const commentedReviews = await this.db.review.findMany({
+			where: {
+				comments: {
+					some: {
+						userId,
+					},
+				},
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		const commentedReviewIds = commentedReviews.map((review) => review.id);
+
+		return new Set(commentedReviewIds);
+	}
+
+	async transformReview(
+		review: RawReview,
+		userId: number,
+	): Promise<ReviewResponse> {
+		let likedReviewIds: Set<number> = new Set();
+		let dislikedReviewIds: Set<number> = new Set();
+		let commentedReviewIds: Set<number> = new Set();
+
+		[likedReviewIds, dislikedReviewIds, commentedReviewIds] =
+			await Promise.all([
+				this.findLikedReviews(userId),
+				this.findDislikedReviews(userId),
+				this.findCommentedReviews(userId),
+			]);
+
+		const transformReview: ReviewResponse = {
 			...review,
-			isLiked: !!userLike
+			isLiked: likedReviewIds.has(review.id),
+			isDisliked: dislikedReviewIds.has(review.id),
+			isCommented: commentedReviewIds.has(review.id),
+		};
+
+		return transformReview;
+	}
+
+	async transformReviews(
+		reviews: RawReview[],
+		userId?: number,
+	): Promise<ReviewResponse[]> {
+		let likedReviewIds: Set<number> = new Set();
+		let dislikedReviewIds: Set<number> = new Set();
+		let commentedReviewIds: Set<number> = new Set();
+
+		if (userId) {
+			[likedReviewIds, dislikedReviewIds, commentedReviewIds] =
+				await Promise.all([
+					this.findLikedReviews(userId),
+					this.findDislikedReviews(userId),
+					this.findCommentedReviews(userId),
+				]);
 		}
-		 
-		return reviewWithLike
+
+		const transformedReviews: ReviewResponse[] = reviews.map((review) => ({
+			...review,
+			isLiked: likedReviewIds.has(review.id),
+			isDisliked: dislikedReviewIds.has(review.id),
+			isCommented: commentedReviewIds.has(review.id),
+		}));
+
+		return transformedReviews;
 	}
 
 	async getReviewsForMovie(
 		movieId: number,
-		limit: number = 10,
-		cursor?: number,
-		orderBy: 'desc' | 'asc' = 'desc',
+		filter: FilterDto,
+		sorting: SortingDto,
+		pagination: PaginationDto,
 		userId?: number,
-	) {
-		this.logger.log(`Getting reviews for movie with ID '${movieId}'`);
+	): Promise<GetReviewsForMovieResponse> {
+		const {
+			limit = 10,
+			cursorId,
+			cursorTotalLikes,
+			cursorTotalDislikes,
+		} = pagination;
+		const { meLiked, meDisliked, meCommented } = filter;
+
+		const { sort, order = 'desc' } = sorting;
+
+		const orderBy: Record<string, typeof order>[] = [];
+
+		if (sort === 'likes') {
+			orderBy.push({ totalLikes: order }, { id: order });
+		} else if (sort === 'dislikes') {
+			orderBy.push({ totalDislikes: order }, { id: order });
+		} else {
+			orderBy.push({ id: order });
+		}
 
 		const reviews = await this.db.review.findMany({
-			skip: cursor ? 1 : undefined,
-			cursor: cursor ? { id: cursor } : undefined,
+			skip: cursorId ? 1 : undefined,
+			cursor: cursorId
+				? {
+						id: cursorId,
+						...(sort === 'likes' && {
+							totalLikes: cursorTotalLikes,
+						}),
+						...(sort === 'dislikes' && {
+							totalDislikes: cursorTotalDislikes,
+						}),
+					}
+				: undefined,
 			take: limit,
 			where: {
 				movieId,
+				likes: userId && meLiked ? { some: { userId } } : {},
+				dislikes: userId && meDisliked ? { some: { userId } } : {},
+				comments: userId && meCommented ? { some: { userId } } : {},
 			},
-			orderBy: {
-				id: orderBy,
+			orderBy,
+			include: {
+				user: {
+					select: {
+						id: true,
+						country: true,
+						displayName: true,
+						email: true,
+						avatarUrl: true,
+						totalReviews: true
+					},
+				},
 			},
 		});
 
-		let reviewsWithLikes: ReviewResponse[] = []
+		const transformedReviews = await this.transformReviews(reviews, userId);
 
-		if (userId) {
-			const reviewIds = reviews.map((review) => review.id);
+		const lastReviewIndex = reviews.length - 1;
 
-			const likedReviews = await this.likeService.findLikedReviews(
-				userId,
-				reviewIds,
-			);
-
-			const likedReviewIds = new Set(
-				likedReviews.map((likedReview) => likedReview.reviewId),
-			);
-
-			reviewsWithLikes = reviews.map((review) => ({
-				...review,
-				isLiked: likedReviewIds.has(review.id),
-			}));
-		} else {
-			reviewsWithLikes = reviews.map((review) => ({
-				...review,
-				isLiked: false
-			}))
-		}
-
-		const nextCursor =
-			reviews.length === limit ? reviews[reviews.length - 1].id : null;
-
-		this.logger.log(`Found reviews: ${JSON.stringify(reviewsWithLikes)}`);
+		const nextCursor: ReviewCursorResponse | null =
+			reviews.length === limit
+				? {
+						id: reviews[lastReviewIndex].id,
+						...(sort === 'likes' && {
+							likes: reviews[lastReviewIndex].totalLikes,
+						}),
+						...(sort === 'dislikes' && {
+							dislikes: reviews[lastReviewIndex].totalDislikes,
+						}),
+					}
+				: null;
 
 		return {
-			reviews: reviewsWithLikes,
+			data: transformedReviews,
 			nextCursor,
 		};
+	}
+
+	async getLastReviewsForCardByMovieId(movieId: number, limit: number = 10): Promise<ReviewForCardResponseByMovieId[]> {
+		const reviews = await this.db.review.findMany({
+			take: limit,
+			where: {
+				movieId
+			},
+			select: {
+				id: true,
+				message: true,
+				rating: true,
+				createdAt: true,
+				userId: true,
+				user: {
+					select: {
+						id: true,
+						email: true,
+						displayName: true,
+						avatarUrl: true,
+						country: true,
+						totalReviews: true
+					}
+				}
+			},
+			orderBy: { id: 'desc' }
+		})
+
+		return reviews
+	}
+
+	async getPopularReviewsForCardByMovieId(movieId: number, limit: number = 10): Promise<ReviewForCardResponseByMovieId[]> {
+		const reviews = await this.db.review.findMany({
+			take: limit,
+			where: {
+				movieId
+			},
+			select: {
+				id: true,
+				message: true,
+				rating: true,
+				createdAt: true,
+				userId: true,
+				user: {
+					select: {
+						id: true,
+						email: true,
+						displayName: true,
+						avatarUrl: true,
+						country: true,
+						totalReviews: true
+					}
+				}
+			},
+			orderBy: { totalLikes: 'desc', totalComments: 'desc' }
+		})
+
+		return reviews
+	}
+
+	async getLastReviewsForCard(limit: number = 30): Promise<ReviewForCardResponse[]> {
+		const reviews = await this.db.review.findMany({
+			take: limit,
+			select: {
+				id: true,
+				message: true,
+				rating: true,
+				createdAt: true,
+				userId: true,
+				user: {
+					select: {
+						id: true,
+						email: true,
+						displayName: true,
+						avatarUrl: true,
+						country: true,
+						totalReviews: true
+					}
+				},
+				movie: {
+					select: {
+						title: true
+					}
+				}
+			},
+			orderBy: { id: 'desc' }
+		})
+
+		return reviews.map((review) => ({...review, movieTitle: review.movie.title}))
+	}
+
+	async getPopularReviewsForCard(limit: number = 30): Promise<ReviewForCardResponse[]> {
+		const reviews = await this.db.review.findMany({
+			take: limit,
+			select: {
+				id: true,
+				message: true,
+				rating: true,
+				createdAt: true,
+				userId: true,
+				user: {
+					select: {
+						id: true,
+						email: true,
+						displayName: true,
+						avatarUrl: true,
+						country: true,
+						totalReviews: true
+					}
+				},
+				movie: {
+					select: {
+						title: true
+					}
+				}
+			},
+			orderBy: { totalLikes: 'desc', totalComments: 'desc' }
+		})
+
+		return reviews.map((review) => ({...review, movieTitle: review.movie.title}))
+	}
+
+	async getUserReview(movieId: number, userId?: number): Promise<ReviewResponse | null> {
+		if(!userId) return null
+
+		const review = await this.db.review.findUnique({
+			where: {
+				userId_movieId: { userId, movieId },
+			},
+			include: {
+				user: {
+					select: {
+						id: true,
+						country: true,
+						displayName: true,
+						email: true,
+						avatarUrl: true,
+						totalReviews: true
+					},
+				},
+			},
+		});
+
+		if(review) {
+			return await this.transformReview(review, userId)
+		} else {
+			return null
+		}
 	}
 
 	async createReview(
@@ -136,81 +582,87 @@ export class ReviewService {
 		movieId: number,
 		rating: number,
 		message: string,
-	) {
-		const existingReview = await this.db.review.findUnique({
-			where: {
-				userId,
-				movieId,
-			},
-		});
-
-		if (existingReview) {
-			throw new BadRequestException(
-				`User with ID ${userId} already has a review form movie with ID '${movieId}'`,
-			);
-		}
-
-		this.logger.log(`Creating review to movie with ID '${movieId}'`);
-
-		const review = await this.db.review.create({
-			data: {
-				rating,
-				message,
-				user: {
-					connect: {
-						id: userId,
+	): Promise<CreateReviewResponse> {
+		try {
+			const review = await this.db.review.create({
+				data: {
+					rating,
+					message,
+					user: {
+						connect: {
+							id: userId,
+						},
+					},
+					movie: {
+						connect: {
+							id: movieId,
+						},
 					},
 				},
-				movie: {
-					connect: {
-						id: movieId,
+				include: {
+					user: {
+						select: {
+							id: true,
+							country: true,
+							displayName: true,
+							email: true,
+							avatarUrl: true,
+						},
 					},
 				},
-			},
-		});
+			});
 
-		const reviewWithLike = {
-			...review,
-			isLiked: false
+			const updatedMovie = await this.movieService.updateRating(movieId, rating, true);
+			const updatedUser = await this.userService.updateTotalReviews(userId, true)
+
+			return {...review, isDisliked: false, isLiked: false, isCommented: false, movie: updatedMovie, user: {...review.user, totalReviews: updatedUser.totalReviews}};
+		} catch (error) {
+			if (isUniqueConstraintError(error)) {
+				throw new BadRequestException(
+					'User already has a review for this movie',
+				);
+			}
+
+			if (isRecordNotFoundError(error)) {
+				throw new BadRequestException('User or movie does not exist');
+			}
+
+			throw error;
 		}
-
-		this.logger.log(`Review created: ${JSON.stringify(reviewWithLike)}`);
-
-		await this.movieService.updateRating(movieId, rating, true);
-
-		return reviewWithLike;
 	}
 
-	async deleteReview(userId: number, reviewId: number) {
-		const review = await this.findReviewById(reviewId);
+	async deleteReview(userId: number, reviewId: number): Promise<DeleteReviewResponse> {
+		const review = await this.findReviewById(reviewId)
 
-		if (review.userId !== userId) {
-			throw new ForbiddenException(
-				`User with ID '${userId}' cant delete review with ID '${reviewId}' `,
-			);
+		if(review.userId !== userId) {
+			throw new ForbiddenException('This user cant delete this review')
 		}
-
-		this.logger.log(`Deleting review with ID ${reviewId}`);
 
 		const deletedReview = await this.db.review.delete({
 			where: {
 				id: reviewId,
 			},
 			select: {
-				id: true
+				id: true,
+				rating: true,
+				movie: {
+					select: {
+						id: true,
+						title: true,
+					}
+				}
 			}
 		});
 
-		this.logger.log(`Review deleted: ${JSON.stringify(deletedReview)}`);
-
-		await this.movieService.updateRating(
-			review.movieId,
+		const updatedMovie = await this.movieService.updateRating(
+			deletedReview.movie.id,
 			0,
 			false,
-			review.rating,
+			deletedReview.rating,
 		);
+		const updatedUser = await this.userService.updateTotalReviews(userId, false)
 
-		return deletedReview;
+		return {id: deletedReview.id, movie: updatedMovie, user: updatedUser};
 	}
 
 	async updateReview(
@@ -218,16 +670,12 @@ export class ReviewService {
 		reviewId: number,
 		rating: number,
 		message: string,
-	) {
-		const review = await this.findReviewById(reviewId);
+	): Promise<UpdateReviewResponse> {
+		const review = await this.findReviewById(reviewId)
 
-		if (review.userId !== userId) {
-			throw new ForbiddenException(
-				`User with ID '${userId}' cant update review with ID '${reviewId}' `,
-			);
+		if(review.userId !== userId) {
+			throw new ForbiddenException('This user cant update this review')
 		}
-
-		this.logger.log(`Updating review by ID '${reviewId}'`);
 
 		const updatedReview = await this.db.review.update({
 			where: {
@@ -238,97 +686,51 @@ export class ReviewService {
 				message,
 				isChanged: true,
 			},
+			select: {
+				movie: {
+					select: {
+						id: true,
+						title: true,
+					}
+				},
+				id: true,
+				message: true,
+				rating: true,
+				isChanged: true,
+			}
 		});
 
-		const userLike = await this.likeService.findUserLike(userId, reviewId)
-
-		const updatedReviewWithLike = {
-			...updatedReview,
-			isLiked: !!userLike
-		}
-
-		this.logger.log(`Review updated: ${JSON.stringify(updatedReviewWithLike)}`);
-
-		await this.movieService.updateRating(
-			review.movieId,
+		const updatedMovie = await this.movieService.updateRating(
+			updatedReview.movie.id,
 			rating,
 			undefined,
-			review.rating,
+			updatedReview.rating,
 		);
 
-		return updatedReviewWithLike;
+		return {
+			id: updatedReview.id,
+			message: updatedReview.message,
+			rating: updatedReview.rating,
+			isChanged: updatedReview.isChanged,
+			movie: updatedMovie
+		};
 	}
 
-	async updateTotalComments(reviewId: number, isIncrement: boolean) {
-		this.logger.log(
-			`Updating total comments for review with ID '${reviewId}'`,
-		);
-
-		const updatedReview = await this.db.review.update({
-			where: {
-				id: reviewId
-			},
-			data: {
-				totalComments: isIncrement ? {increment: 1} : {decrement: 1}
-			},
-			select: {
-				id: true,
-				totalComments: true
-			}
-		})
-
-		this.logger.log(`Review updated: ${JSON.stringify(updatedReview)}`);
-
-		return updatedReview
-
-	}
-
-	async updateTotalLikes(reviewId: number, isIncrement: boolean) {
-		this.logger.log(
-			`Updating total likes for review with ID '${reviewId}'`,
-		);
-
+	async updateTotalComments(reviewId: number, isIncrement: boolean): Promise<UpdateReviewTotalCommentsResponse> {
 		const updatedReview = await this.db.review.update({
 			where: {
 				id: reviewId,
 			},
 			data: {
-				totalLikes: isIncrement ? { increment: 1 } : { decrement: 1 },
+				totalComments: isIncrement
+					? { increment: 1 }
+					: { decrement: 1 },
 			},
 			select: {
 				id: true,
-				totalLikes: true
-			}
+				totalComments: true,
+			},
 		});
-
-		this.logger.log(`Review updated: ${JSON.stringify(updatedReview)}`);
-
 		return updatedReview;
-	}
-
-	async toggleUserLike(userId: number, reviewId: number) {
-		await this.findReviewById(reviewId);
-
-		const userLike = await this.likeService.findUserLike(userId, reviewId);
-
-		if (userLike) {
-			await this.likeService.removeLike(userId, reviewId);
-
-			const updatedReview = await this.updateTotalLikes(reviewId, false);
-
-			return {
-				...updatedReview,
-				isLiked: false
-			}
-		} else {
-			await this.likeService.addLike(userId, reviewId);
-
-			const updatedReview = await this.updateTotalLikes(reviewId, true);
-
-			return {
-				...updatedReview,
-				isLiked: true
-			}
-		}
 	}
 }

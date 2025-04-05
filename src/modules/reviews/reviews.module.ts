@@ -3,10 +3,10 @@ import { DbModule } from "src/db/db.module";
 import { ReviewService } from "./reviews.service";
 import { MovieModule } from "src/modules/movies/movies.module";
 import { ReviewController } from "./reviews.controller";
-import { ReviewLikeModule } from "src/modules/reviewLikes/reviewLikes.module";
+import { UserModule } from "../users/users.module";
 
 @Module({
-    imports: [DbModule, MovieModule, ReviewLikeModule],
+    imports: [DbModule, MovieModule, UserModule],
     providers: [ReviewService],
     exports: [ReviewService],
     controllers: [ReviewController]

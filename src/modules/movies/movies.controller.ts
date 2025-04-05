@@ -26,6 +26,9 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/modules/auth/auth.guard';
 import { RolesGuard } from 'src/modules/auth/roles.guard';
 import { Roles } from 'src/modules/auth/roles.decorator';
+import { OptionalAuthGuard } from '../auth/optional-auth.guard';
+import { SessionInfoDto } from '../auth/dto';
+import { SessionInfo } from '../auth/session-info.decorator';
 
 @ApiTags('Movies')
 @Controller('movies')
@@ -90,20 +93,23 @@ export class MovieController {
 		type: GetMoviesResponse,
 	})
 	@UsePipes(new ValidationPipe({ transform: true }))
+	@UseGuards(OptionalAuthGuard)
 	async getMovies(
 		@Query() filter: FilterDto,
 		@Query() pagination: PaginationDto,
 		@Query() sorting: SortingDto,
+		@SessionInfo() session?: SessionInfoDto,
 	): Promise<GetMoviesResponse> {
-		const result = await this.movieService.getMovies(
+		const { data, nextCursor } = await this.movieService.getMovies(
 			filter,
 			pagination,
 			sorting,
+			session?.id
 		);
 
 		return {
-			data: result.data,
-			nextCursor: result.nextCursor,
+			data,
+			nextCursor,
 		};
 	}
 }

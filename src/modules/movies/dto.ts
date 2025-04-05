@@ -119,12 +119,17 @@ export class MovieForCardResponse {
     @ApiProperty({
         example: false
     })
-    isAddedToWishlist: boolean
+    isWished: boolean
 
     @ApiProperty({
         example: false
     })
     isRated: boolean
+
+    @ApiProperty({
+        example: 18
+    })
+    ageLimit: number
 }
 
 export class MovieResponse extends MovieForCardResponse {
@@ -137,11 +142,6 @@ export class MovieResponse extends MovieForCardResponse {
         example: 'Description...'
     })
     description: string
-
-    @ApiProperty({
-        example: 18
-    })
-    ageLimit: number
 
     @ApiProperty({
         example: '2023-03-23T00:00:00.000Z'
@@ -237,8 +237,8 @@ export class PaginationDto {
         required: false
     })
     @IsOptional()
-    @Min(0)
-    @Max(10)
+    @Min(5)
+    @Max(9)
     @IsInt()
     @Type(() => Number)
     cursorRating?: number
@@ -313,4 +313,26 @@ export class FilterDto {
     @Max(10)
     @Type(() => Number)
     rating?: number;
+}
+
+export class UpdateMovieRatingResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: 'Matrix'
+    })
+    title: string
+
+    @ApiProperty({
+        example: 5.5
+    })
+    rating: number
+
+    @ApiProperty({
+        example: 15
+    })
+    totalReviews: number
 }

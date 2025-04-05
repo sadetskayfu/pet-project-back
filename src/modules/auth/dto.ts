@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail } from 'class-validator';
+import { IsEmail, MaxLength } from 'class-validator';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
 import { IsValidPassword } from 'src/decorators/valid-password.decorator';
 import { Role } from 'src/modules/roles/types';
@@ -7,6 +7,7 @@ import { Role } from 'src/modules/roles/types';
 export class SignInDto {
 	@ApiProperty()
     @IsEmail()
+	@MaxLength(64)
 	email: string;
 
 	@ApiProperty()
@@ -23,6 +24,9 @@ export class SignUpDto extends SignInDto {
 export class AuthResponse {
 	@ApiProperty()
 	userId: number
+
+	@ApiProperty()
+	email: string
 }
 
 export class SessionInfoDto {

@@ -8,13 +8,16 @@ datasource db {
 }
 
 model User {
-  id              Int             @id @default(autoincrement())
-  email           String          @unique @db.VarChar(64)
+  id              Int              @id @default(autoincrement())
+  email           String           @unique @db.VarChar(64)
+  displayName     String?          @unique @db.VarChar(32)
+  avatarUrl       String?
   hash            String
   salt            String
-  isConfirmed     Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  countryCode     String          @db.VarChar(2)
+  isConfirmed     Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  countryCode     String           @db.VarChar(2)
+  totalReviews    Int              @default(0)
   confirmationIds Confirmation[]
   profile         Profile?
   roles           Role[]
@@ -22,8 +25,10 @@ model User {
   comments        Comment[]
   reviewLikes     ReviewLike[]
   commentLikes    CommentLike[]
+  reviewDislikes  ReviewDislike[]
+  commentDislikes CommentDislike[]
   watchedMovies   WatchedMovie[]
-  wishListMovies  WishListMovie[]
+  wishedMovies    WishedMovie[]
 
   country Country @relation(fields: [countryCode], references: [code])
 }
@@ -39,12 +44,6 @@ model Confirmation {
   user User @relation(fields: [userId], references: [id])
 }
 
-model ViewedMoviesByUser {
-  id      Int @id @default(autoincrement())
-  userId  Int
-  movieId Int
-}
-
 model Role {
   id    Int    @id @default(autoincrement())
   name  String @unique
@@ -53,51 +52,83 @@ model Role {
 
 model ReviewLike {
   id       Int @id @default(autoincrement())
-  userId   Int @unique
-  reviewId Int @unique
+  userId   Int
+  reviewId Int
 
-  user   User   @relation(fields: [userId], references: [id])
-  review Review @relation(fields: [reviewId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reviewId])
 }
 
 model CommentLike {
   id        Int @id @default(autoincrement())
-  userId    Int @unique
-  commentId Int @unique
+  userId    Int
+  commentId Int
 
-  user    User    @relation(fields: [userId], references: [id])
-  comment Comment @relation(fields: [commentId], references: [id])
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+model ReviewDislike {
+  id       Int @id @default(autoincrement())
+  userId   Int
+  reviewId Int
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reviewId])
+}
+
+model CommentDislike {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  commentId Int
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
 }
 
 model Comment {
-  id         Int           @id @default(autoincrement())
-  message    String        @db.VarChar(255)
-  userId     Int
-  reviewId   Int
-  likes      CommentLike[]
-  totalLikes Int           @default(0)
-  isChanged  Boolean       @default(false)
-  createdAt  DateTime      @default(now())
+  id            Int              @id @default(autoincrement())
+  message       String           @db.Text
+  userId        Int
+  reviewId      Int
+  likes         CommentLike[]
+  totalLikes    Int              @default(0)
+  dislikes      CommentDislike[]
+  totalDislikes Int              @default(0)
+  isChanged     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
 
-  user   User   @relation(fields: [userId], references: [id])
-  review Review @relation(fields: [reviewId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 }
 
 model Review {
-  id            Int          @id @default(autoincrement())
-  message       String       @db.VarChar(255)
+  id            Int             @id @default(autoincrement())
+  message       String          @db.Text
   rating        Float
-  userId        Int          @unique
-  movieId       Int          @unique
+  userId        Int
+  movieId       Int
   comments      Comment[]
-  totalComments Int          @default(0)
+  totalComments Int             @default(0)
   likes         ReviewLike[]
-  totalLikes    Int          @default(0)
-  isChanged     Boolean      @default(false)
-  createdAt     DateTime     @default(now())
+  totalLikes    Int             @default(0)
+  dislikes      ReviewDislike[]
+  totalDislikes Int             @default(0)
+  isChanged     Boolean         @default(false)
+  createdAt     DateTime        @default(now())
 
-  user  User  @relation(fields: [userId], references: [id])
-  movie Movie @relation(fields: [movieId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
 }
 
 model Profile {
@@ -106,14 +137,14 @@ model Profile {
   firstName String?   @db.VarChar(32)
   lastName  String?   @db.VarChar(32)
   birthDate DateTime?
-  gender    String?   @db.VarChar(5)
+  gender    String?
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Country {
-  code   String  @id @unique @db.VarChar(2)
-  label  String  @unique
+  code   String           @id @unique @db.VarChar(2)
+  label  String           @unique
   users  User[]
   movies MovieCountries[]
 }
@@ -134,30 +165,32 @@ model Actor {
 }
 
 model Movie {
-  id           Int             @id @default(autoincrement())
+  id           Int              @id @default(autoincrement())
   title        String
   description  String
   ageLimit     Int
   releaseDate  DateTime
   releaseYear  Int
-  rating       Float           @default(0.0)
-  totalReviews Int             @default(0)
+  rating       Float            @default(0.0)
+  totalReviews Int              @default(0)
   duration     Int
   cardImgUrl   String
   videoUrl     String
+  // trailerUlr   String
+  // posterUrl    String
   countries    MovieCountries[]
   genres       MovieGenre[]
   reviews      Review[]
   actors       MovieActors[]
   watchedBy    WatchedMovie[]
-  wishListedBy WishListMovie[]
+  wishedBy     WishedMovie[]
 }
 
 model MovieCountries {
-  movieId Int
+  movieId     Int
   countryCode String
 
-  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
   country Country @relation(fields: [countryCode], references: [code], onDelete: Cascade)
 
   @@id([movieId, countryCode])
@@ -184,23 +217,23 @@ model MovieGenre {
 }
 
 model WatchedMovie {
-  userId    Int
-  movieId   Int
-  watchedAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id])
-  movie Movie @relation(fields: [movieId], references: [id])
-
-  @@unique([userId, movieId])
-}
-
-model WishListMovie {
   userId  Int
   movieId Int
   addedAt DateTime @default(now())
 
-  user  User  @relation(fields: [userId], references: [id])
-  movie Movie @relation(fields: [movieId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+}
+
+model WishedMovie {
+  userId  Int
+  movieId Int
+  addedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
   @@unique([userId, movieId])
 }

@@ -53,7 +53,7 @@ export class ActorController {
 
 		return {
 			data: actors,
-			cursor: nextCursor
+			nextCursor
 		};
 	}
 

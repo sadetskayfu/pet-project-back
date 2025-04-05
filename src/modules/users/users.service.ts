@@ -171,4 +171,21 @@ export class UserService {
 
 		this.logger.log(`User deleted`);
 	}
+
+	async updateTotalReviews(userId: number, isIncrement: boolean) {
+		const updatedUser = await this.db.user.update({
+			where: {
+				id: userId
+			},
+			data: {
+				totalReviews: isIncrement ? { increment: 1 } : { decrement: 1 }
+			},
+			select: {
+				id: true,
+				totalReviews: true,
+			}
+		})
+
+		return updatedUser
+	}
 }

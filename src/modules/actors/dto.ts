@@ -58,7 +58,7 @@ export class GetAllActorsResponse {
     @ApiProperty({
         example: 2
     })
-    cursor: number | null
+    nextCursor: number | null
   }
 
 export class CreateActorDto {

@@ -5,8 +5,6 @@ import {
 	Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
-import { CookieService } from 'src/modules/auth/cookie.service';
 import { Request } from 'express';
 import { SessionInfoDto } from './dto';
 
@@ -14,7 +12,6 @@ import { SessionInfoDto } from './dto';
 export class RolesGuard implements CanActivate {
 	constructor(
 		private reflector: Reflector,
-		private jwtService: JwtService,
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -28,11 +25,12 @@ export class RolesGuard implements CanActivate {
 		}
 
 		const request = context.switchToHttp().getRequest() as Request;
-		const token = request.cookies[CookieService.tokenKey];
+		const sessionInfo = request['session'] as SessionInfoDto | undefined
 
-		const sessionInfo: SessionInfoDto = this.jwtService.verify(token, {
-			secret: process.env.JWT_SECRET,
-		});
+		if(!sessionInfo) {
+			return false
+		}
+
 		const userRoles = sessionInfo.roles;
 		const hasRole = userRoles.some((role) =>
 			requiredRoles.includes(role.name),

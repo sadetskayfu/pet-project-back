@@ -1,9 +1,50 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Max, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Max, Min } from "class-validator";
 import { IsHalfStep } from "src/decorators/isHalfStep.decorator";
+import { CountryResponse } from "../countries/dto";
+import { UpdateMovieRatingResponse } from "../movies/dto";
 
-export class OrderDto {
+export class ReviewCursorResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: 15
+    })
+    totalLikes?: number
+
+    @ApiProperty({
+        example: 15
+    })
+    totalDislikes?: number
+}
+
+export class FilterDto {
+    @ApiProperty({ required: false})
+    @IsOptional()
+    @IsBoolean()
+    meLiked?: boolean
+
+    @ApiProperty({ required: false})
+    @IsOptional()
+    @IsBoolean()
+    meDisliked?: boolean
+
+    @ApiProperty({ required: false})
+    @IsOptional()
+    @IsBoolean()
+    meCommented?: boolean
+}
+
+export class SortingDto {
+    @ApiProperty({ required: false, enum: ['likes', 'dislikes'] })
+    @IsOptional()
+    @IsIn(['likes', 'dislikes'])
+    sort?: 'likes' | 'dislikes';
+
     @ApiProperty({
         required: false,
         default: 'desc',
@@ -16,30 +57,46 @@ export class OrderDto {
 
 export class PaginationDto {
     @ApiProperty({
-        required: false,
-        default: 20
+        required: false
     })
-    @IsInt()
     @Min(1)
+    @IsInt()
     @IsOptional()
     @Type(() => Number)
-    limit?: number
+    cursorId?: number
 
     @ApiProperty({
-        required: false,
+        required: false
     })
-    @IsInt()
-    @Min(1)
     @IsOptional()
+    @IsInt()
     @Type(() => Number)
-    cursor?: number
+    cursorTotalLikes?: number
+
+    @ApiProperty({
+        required: false
+    })
+    @IsOptional()
+    @IsInt()
+    @Type(() => Number)
+    cursorTotalDislikes?: number
+
+    @ApiProperty({
+        default: 10,
+        required: false
+    })
+    @IsOptional()
+    @Min(1)
+    @IsInt()
+    @Type(() => Number)
+    limit?: number
 }
 
-class BaseReview {
+export class UpdateReviewDto {
     @ApiProperty()
-    @Length(1, 255)
-    @IsNotEmpty()
+    @Length(1, 1000)
     @IsString()
+    @IsNotEmpty()
     message: string
 
     @ApiProperty({
@@ -54,21 +111,42 @@ class BaseReview {
     rating: number
 }
 
-export class UpdateReviewDto extends BaseReview {
-    @ApiProperty()
-    @Min(1)
-    @IsInt()
-    reviewId: number
-}
-
-export class CreateReviewDto extends BaseReview {
+export class CreateReviewDto extends UpdateReviewDto {
     @ApiProperty()
     @Min(1)
     @IsInt()
     movieId: number
 }
 
-export class ReviewResponse {
+export class UserResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        type: CountryResponse
+    })
+    country: CountryResponse
+
+    @ApiProperty()
+    displayName: string | null
+
+    @ApiProperty({
+        example: 'goblin_1444@mail.ru'
+    })
+    email: string
+
+    @ApiProperty()
+    avatarUrl: string | null
+
+    @ApiProperty({
+        example: 25
+    })
+    totalReviews: number
+}
+
+export class ReviewForCardResponseByMovieId {
     @ApiProperty({
         example: 1
     })
@@ -78,7 +156,6 @@ export class ReviewResponse {
         example: 'This movie perfect! 10/10'
     })
     message: string
-
     @ApiProperty({
         example: '2023-03-23T00:00:00.000Z'
     })
@@ -90,14 +167,28 @@ export class ReviewResponse {
     rating: number
 
     @ApiProperty({
-        example: false
-    })
-    isChanged: boolean
-
-    @ApiProperty({
         example: 1
     })
     userId: number
+
+    @ApiProperty({
+        type: UserResponse
+    })
+    user: UserResponse
+}
+
+export class ReviewForCardResponse extends ReviewForCardResponseByMovieId {
+    @ApiProperty({
+        example: 'Matrix'
+    })
+    movieTitle: string
+}
+
+export class ReviewResponse extends ReviewForCardResponseByMovieId {
+    @ApiProperty({
+        example: false
+    })
+    isChanged: boolean
 
     @ApiProperty({
         example: 1
@@ -115,9 +206,24 @@ export class ReviewResponse {
     totalLikes: number
 
     @ApiProperty({
+        example: 15
+    })
+    totalDislikes: number
+
+    @ApiProperty({
         example: false
     })
     isLiked: boolean
+
+    @ApiProperty({
+        example: false
+    })
+    isDisliked: boolean
+
+    @ApiProperty({
+        example: false
+    })
+    isCommented: boolean
 }
 
 export class GetReviewsForMovieResponse {
@@ -125,14 +231,93 @@ export class GetReviewsForMovieResponse {
     data: ReviewResponse[];
   
     @ApiProperty({
-        example: 15
+        type: ReviewCursorResponse
     })
-    nextCursor?: number | null;
+    nextCursor: ReviewCursorResponse | null;
 }
 
-export class DeletedReviewResponse {
+class UpdatedUser {
+    @ApiProperty({
+        example: 15
+    })
+    totalReviews: number
+}
+
+export class DeleteReviewResponse {
     @ApiProperty({
         example: 1
     })
     id: number
+
+    @ApiProperty({
+        type: UpdateMovieRatingResponse
+    })
+    movie: UpdateMovieRatingResponse
+
+    @ApiProperty({
+        type: UpdatedUser
+    })
+    user: UpdatedUser
+}
+
+export class CreateReviewResponse extends ReviewResponse{
+    @ApiProperty({
+        type: UpdateMovieRatingResponse
+    })
+    movie: UpdateMovieRatingResponse
+}
+
+export class UpdateReviewResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: true
+    })
+    isChanged: boolean
+
+    @ApiProperty({
+        example: 4.5
+    })
+    rating: number
+
+    @ApiProperty({
+        example: 'Cool movie!'
+    })
+    message: string
+
+    @ApiProperty({
+        type: UpdateMovieRatingResponse
+    })
+    movie: UpdateMovieRatingResponse
+}
+
+export class UpdateReviewTotalCommentsResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: 15
+    })
+    totalComments: number
+}
+
+export class ToggleLikeDto {
+    @ApiProperty({
+        example: true
+    })
+    @IsBoolean()
+    isLiked: boolean
+}
+
+export class ToggleDislikeDto {
+    @ApiProperty({
+        example: true
+    })
+    @IsBoolean()
+    isDisliked: boolean
 }

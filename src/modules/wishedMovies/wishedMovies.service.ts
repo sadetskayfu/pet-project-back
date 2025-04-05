@@ -9,26 +9,26 @@ import {
 	isRecordNotFoundError,
 	isUniqueConstraintError,
 } from 'src/shared/helpers/errors/prisma-errors';
-import { WatchedMovieResponse } from './dto';
+import { WishedMovieResponse } from './dto';
 
 @Injectable()
-export class WatchedMovieService {
-	private readonly logger = new Logger(WatchedMovieService.name);
+export class WishedMovieService {
+	private readonly logger = new Logger(WishedMovieResponse.name);
 
 	constructor(
 		private db: DbService,
 	) {}
 
-	async addToWatched(
+	async addToWished(
 		userId: number,
 		movieId: number,
-	): Promise<WatchedMovieResponse> {
+	): Promise<WishedMovieResponse> {
 		this.logger.log(
-			`Adding movie "${movieId}" to watched list to user "${userId}"`,
+			`Adding movie "${movieId}" to wish list to user "${userId}"`,
 		);
 
 		try {
-			const addedMovie = await this.db.watchedMovie.create({
+			const addedMovie = await this.db.wishedMovie.create({
 				data: {
 					user: { connect: { id: userId } },
 					movie: { connect: { id: movieId } },
@@ -43,7 +43,7 @@ export class WatchedMovieService {
 			});
 
 			this.logger.log(
-				`Movie "${movieId}" added to watched list to user ${userId}`,
+				`Movie "${movieId}" added to wish list to user ${userId}`,
 			);
 
 			return { id: movieId, title: addedMovie.movie.title };
@@ -54,7 +54,7 @@ export class WatchedMovieService {
 
 			if (isUniqueConstraintError(error)) {
 				throw new BadRequestException(
-					'This movie has already been added to the watched list',
+					'This movie has already been added to wish list',
 				);
 			}
 
@@ -62,16 +62,16 @@ export class WatchedMovieService {
 		}
 	}
 
-	async removeFormWatched(
+	async removeFormWished(
 		userId: number,
 		movieId: number,
-	): Promise<WatchedMovieResponse> {
+	): Promise<WishedMovieResponse> {
 		this.logger.log(
-			`Removing movie "${movieId}" from watched list from user "${userId}"`,
+			`Removing movie "${movieId}" from wish list from user "${userId}"`,
 		);
 
 		try {
-			const removedMovie = await this.db.watchedMovie.delete({
+			const removedMovie = await this.db.wishedMovie.delete({
 				where: {
 					userId_movieId: {
 						movieId,
@@ -88,7 +88,7 @@ export class WatchedMovieService {
 			});
 
 			this.logger.log(
-				`Movie "${movieId}" removed from watched list from user ${userId}`,
+				`Movie "${movieId}" removed from wish list from user ${userId}`,
 			);
 
 			return { id: movieId, title: removedMovie.movie.title };
@@ -99,7 +99,7 @@ export class WatchedMovieService {
 
 			if (isUniqueConstraintError(error)) {
 				throw new BadRequestException(
-					'This movie is not in the watched list',
+					'This movie is not in the wish list',
 				);
 			}
 
@@ -107,11 +107,11 @@ export class WatchedMovieService {
 		}
 	}
 
-    async toggleWatched(userId: number, movieId: number, isWatched: boolean): Promise<WatchedMovieResponse> {
-        if(isWatched) {
-            return await this.removeFormWatched(userId, movieId)
+    async toggleWished(userId: number, movieId: number, isWished: boolean): Promise<WishedMovieResponse> {
+        if(isWished) {
+            return await this.removeFormWished(userId, movieId)
         } else {
-            return await this.addToWatched(userId, movieId)
+            return await this.addToWished(userId, movieId)
         }
     }
 }

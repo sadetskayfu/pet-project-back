@@ -1,22 +1,13 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { Type } from "class-transformer"
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from "class-validator"
-
-export class OrderDto {
-    @ApiProperty({
-        required: false,
-        default: 'desc',
-        enum: ['desc', 'asc']
-    })
-    @IsOptional()
-    @IsIn(['desc', 'asc'])
-    order?: 'desc' | 'asc'
-}
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from "class-validator"
+import { CountryResponse } from "../countries/dto"
+import { UpdateReviewTotalCommentsResponse } from "../reviews/dto"
 
 export class PaginationDto {
     @ApiProperty({
         required: false,
-        default: 20
+        default: 10
     })
     @IsInt()
     @Min(1)
@@ -34,26 +25,47 @@ export class PaginationDto {
     cursor?: number
 }
 
-class BaseComment {
+export class UpdateCommentDto {
     @ApiProperty()
-    @Length(1, 255)
+    @Length(1, 1000)
     @IsNotEmpty()
     @IsString()
     message: string
 }
 
-export class UpdateCommentDto extends BaseComment {
-    @ApiProperty()
-    @Min(1)
-    @IsInt()
-    commentId: number
-}
-
-export class CreateCommentDto extends BaseComment {
+export class CreateCommentDto extends UpdateCommentDto {
     @ApiProperty()
     @Min(1)
     @IsInt()
     reviewId: number
+}
+
+export class UserResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        type: CountryResponse
+    })
+    country: CountryResponse
+
+    @ApiProperty()
+    displayName: string | null
+
+    @ApiProperty({
+        example: 'goblin_1444@mail.ru'
+    })
+    email: string
+
+    @ApiProperty()
+    avatarUrl: string | null
+
+    @ApiProperty({
+        example: 15
+    })
+    totalReviews: number
 }
 
 export class CommentResponse {
@@ -93,9 +105,24 @@ export class CommentResponse {
     totalLikes: number
 
     @ApiProperty({
+        example: 15
+    })
+    totalDislikes: number
+
+    @ApiProperty({
         example: false
     })
     isLiked: boolean
+
+    @ApiProperty({
+        example: false
+    })
+    isDisliked: boolean
+
+    @ApiProperty({
+        type: UserResponse
+    })
+    user: UserResponse
 }
 
 export class GetCommentsForReviewResponse {
@@ -105,12 +132,57 @@ export class GetCommentsForReviewResponse {
     @ApiProperty({
         example: 15
     })
-    nextCursor?: number | null;
+    nextCursor: number | null;
 }
 
-export class DeletedCommentResponse {
+export class CreateCommentResponse extends CommentResponse {
+    @ApiProperty({
+        type: UpdateReviewTotalCommentsResponse
+    })
+    review: UpdateReviewTotalCommentsResponse
+}
+
+export class DeleteCommentResponse {
     @ApiProperty({
         example: 1
     })
     id: number
+
+    @ApiProperty({
+        type: UpdateReviewTotalCommentsResponse
+    })
+    review: UpdateReviewTotalCommentsResponse
+}
+
+export class UpdateCommentResponse {
+    @ApiProperty({
+        example: 1
+    })
+    id: number
+
+    @ApiProperty({
+        example: true
+    })
+    isChanged: boolean
+
+    @ApiProperty({
+        example: 'Cool review!'
+    })
+    message: string
+}
+
+export class ToggleLikeDto {
+    @ApiProperty({
+        example: true
+    })
+    @IsBoolean()
+    isLiked: boolean
+}
+
+export class ToggleDislikeDto {
+    @ApiProperty({
+        example: true
+    })
+    @IsBoolean()
+    isDisliked: boolean
 }

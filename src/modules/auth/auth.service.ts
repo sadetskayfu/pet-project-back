@@ -42,7 +42,8 @@ export class AuthService {
 		);
 
 		return {
-			userId: user.id
+			userId: user.id,
+			email
 		}
 	}
 
@@ -59,7 +60,7 @@ export class AuthService {
 			throw new UnauthorizedException('The user does not exist');
 		}
 
-		return { userId: user.id }
+		return { userId: user.id, email }
 	}
 
 	async signUpConfirmations(code: string, confirmationSessionId: number) {

@@ -13,9 +13,8 @@ import {
 	MovieResponse,
 	MovieForCardResponse,
 	GetMoviesResponse,
+	UpdateMovieRatingResponse,
 } from './dto';
-import { GenreService } from 'src/modules/genres/genres.service';
-import { ActorService } from 'src/modules/actors/actors.service';
 import { Prisma } from '@prisma/client';
 
 type RawMovie = Prisma.MovieGetPayload<{
@@ -57,6 +56,7 @@ type RawMovieForCard = Prisma.MovieGetPayload<{
 		totalReviews: true;
 		releaseYear: true;
 		cardImgUrl: true;
+		ageLimit: true
 	};
 }>;
 
@@ -90,7 +90,7 @@ export class MovieService {
 	}
 
 	async findRatedMovies(userId: number): Promise<Set<number>> {
-		this.logger.log(`Finding rated movies for user with ID '${userId}'`);
+		this.logger.log(`Finding rated movies for user '${userId}'`);
 
 		const ratedMovies = await this.db.movie.findMany({
 			where: {
@@ -113,7 +113,7 @@ export class MovieService {
 	}
 
 	async findWatchedMovies(userId: number): Promise<Set<number>> {
-		this.logger.log(`Finding watched movies for user with ID '${userId}'`);
+		this.logger.log(`Finding watched movies for user '${userId}'`);
 
 		const watchedMovies = await this.db.movie.findMany({
 			where: {
@@ -135,12 +135,12 @@ export class MovieService {
 		return new Set(watchedMovieIds);
 	}
 
-	async findWishlistMovies(userId: number): Promise<Set<number>> {
+	async findWishedMovies(userId: number): Promise<Set<number>> {
 		this.logger.log(`Finding wishlist movies for user with ID '${userId}'`);
 
-		const wishlistMovies = await this.db.movie.findMany({
+		const wishedMovies = await this.db.movie.findMany({
 			where: {
-				wishListedBy: {
+				wishedBy: {
 					some: {
 						userId,
 					},
@@ -151,11 +151,11 @@ export class MovieService {
 			},
 		});
 
-		const wishListMovieIds = wishlistMovies.map((movie) => movie.id);
+		const wishedMovieIds = wishedMovies.map((movie) => movie.id);
 
-		this.logger.log(`Found movies: ${JSON.stringify(wishListMovieIds)}`);
+		this.logger.log(`Found movies: ${JSON.stringify(wishedMovieIds)}`);
 
-		return new Set(wishListMovieIds);
+		return new Set(wishedMovieIds);
 	}
 
 	async getMovieById(
@@ -205,7 +205,7 @@ export class MovieService {
 		reviewRating: number,
 		isIncrementTotalReviews?: boolean,
 		oldReviewRating: number = 0,
-	) {
+	): Promise<UpdateMovieRatingResponse> {
 		const movie = await this.findMovieById(movieId);
 
 		this.logger.log(`Updating rating for movie with ID '${movieId}'`);
@@ -236,8 +236,10 @@ export class MovieService {
 				totalReviews,
 			},
 			select: {
+				id: true,
 				rating: true,
 				totalReviews: true,
+				title: true
 			},
 		});
 
@@ -475,14 +477,14 @@ export class MovieService {
 	async transformMovie(movie: RawMovie, userId?: number) {
 		let ratedMovieIds: Set<number> = new Set();
 		let watchedMovieIds: Set<number> = new Set();
-		let addedToWishlistMovieIds: Set<number> = new Set();
+		let wishedMovieIds: Set<number> = new Set();
 
 		if (userId) {
-			[ratedMovieIds, watchedMovieIds, addedToWishlistMovieIds] =
+			[ratedMovieIds, watchedMovieIds, wishedMovieIds] =
 				await Promise.all([
 					this.findRatedMovies(userId),
 					this.findWatchedMovies(userId),
-					this.findWishlistMovies(userId),
+					this.findWishedMovies(userId),
 				]);
 		}
 
@@ -505,8 +507,8 @@ export class MovieService {
 			})),
 			isRated: userId ? ratedMovieIds.has(movie.id) : false,
 			isWatched: userId ? watchedMovieIds.has(movie.id) : false,
-			isAddedToWishlist: userId
-				? addedToWishlistMovieIds.has(movie.id)
+			isWished: userId
+				? watchedMovieIds.has(movie.id)
 				: false,
 		};
 
@@ -516,14 +518,14 @@ export class MovieService {
 	async transformMoviesForCard(movies: RawMovieForCard[], userId?: number) {
 		let ratedMovieIds: Set<number> = new Set();
 		let watchedMovieIds: Set<number> = new Set();
-		let addedToWishlistMovieIds: Set<number> = new Set();
+		let wishedMovieIds: Set<number> = new Set();
 
 		if (userId) {
-			[ratedMovieIds, watchedMovieIds, addedToWishlistMovieIds] =
+			[ratedMovieIds, watchedMovieIds, wishedMovieIds] =
 				await Promise.all([
 					this.findRatedMovies(userId),
 					this.findWatchedMovies(userId),
-					this.findWishlistMovies(userId),
+					this.findWishedMovies(userId),
 				]);
 		}
 
@@ -540,8 +542,8 @@ export class MovieService {
 				})),
 				isRated: userId ? ratedMovieIds.has(movie.id) : false,
 				isWatched: userId ? watchedMovieIds.has(movie.id) : false,
-				isAddedToWishlist: userId
-					? addedToWishlistMovieIds.has(movie.id)
+				isWished: userId
+					? wishedMovieIds.has(movie.id)
 					: false,
 			}),
 		);
@@ -567,7 +569,7 @@ export class MovieService {
 		const genreList = genres?.split('+');
 		const countryList = countries?.split('+');
 
-		const orderBy: Record<any, string>[] = [];
+		const orderBy: Record<string, typeof order>[] = [];
 
 		if (sort === 'rating') {
 			orderBy.push({ rating: order }, { id: order });
@@ -636,8 +638,9 @@ export class MovieService {
 				totalReviews: true,
 				releaseYear: true,
 				cardImgUrl: true,
+				ageLimit: true
 			},
-			orderBy: orderBy,
+			orderBy,
 		});
 
 		const transformedMovies = await this.transformMoviesForCard(

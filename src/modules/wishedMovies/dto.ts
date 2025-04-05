@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { IsBoolean } from "class-validator"
 
-export class WatchedMovieResponse {
+export class WishedMovieResponse {
     @ApiProperty({
         example: 1
     })
@@ -13,10 +13,10 @@ export class WatchedMovieResponse {
     title: string
 }
 
-export class ToggleWatchedDto {
+export class ToggleWishedDto {
     @ApiProperty({
         example: true
     })
     @IsBoolean()
-    isWatched: boolean
+    isWished: boolean
 }
