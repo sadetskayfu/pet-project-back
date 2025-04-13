@@ -83,7 +83,8 @@ export class ReviewService {
 				id
 			},
 			select: {
-				userId: true
+				userId: true,
+				rating: true
 			}
 		})
 
@@ -124,9 +125,11 @@ export class ReviewService {
 				},
 				data: {
 					totalLikes: { increment: 1 },
-					totalDislikes: userDislike ? { decrement: 1 } : {},
+					totalDislikes: userDislike ? { decrement: 1 } : undefined,
 				},
 			});
+
+			return {id: 2}
 
 		} catch (error) {
 			if (isUniqueConstraintError(error)) {
@@ -147,9 +150,6 @@ export class ReviewService {
 		try {
 			await this.db.reviewLike.delete({
 				where: { userId_reviewId: { userId, reviewId } },
-				select: {
-					id: true,
-				},
 			});
 
 			await this.db.review.update({
@@ -160,6 +160,8 @@ export class ReviewService {
 					totalLikes: { decrement: 1 },
 				},
 			});
+
+			return {id: 2}
 		} catch (error) {
 			if (isRecordNotFoundError(error)) {
 				throw new NotFoundException(
@@ -175,9 +177,6 @@ export class ReviewService {
 				data: {
 					user: { connect: { id: userId } },
 					review: { connect: { id: reviewId } },
-				},
-				select: {
-					id: true,
 				},
 			});
 
@@ -202,9 +201,11 @@ export class ReviewService {
 				},
 				data: {
 					totalDislikes: { increment: 1 },
-					totalLikes: userLike ? { decrement: 1 } : {},
+					totalLikes: userLike ? { decrement: 1 } : undefined,
 				},
 			});
+
+			return {id: 2}
 		} catch (error) {
 			if (isUniqueConstraintError(error)) {
 				throw new BadRequestException(
@@ -237,6 +238,8 @@ export class ReviewService {
 					totalDislikes: { decrement: 1 },
 				},
 			});
+
+			return {id: 2}
 		} catch (error) {
 			if (isRecordNotFoundError(error)) {
 				throw new NotFoundException(
@@ -398,6 +401,16 @@ export class ReviewService {
 			orderBy.push({ id: order });
 		}
 
+		const isFirstPage = !(pagination?.cursorId)
+
+		let userReview: ReviewResponse | null = null
+
+		if(userId && isFirstPage) {
+			userReview = await this.getUserReview(movieId, userId)
+		}
+
+		const adjustedLimit = isFirstPage && userReview ? limit - 1 : limit;
+
 		const reviews = await this.db.review.findMany({
 			skip: cursorId ? 1 : undefined,
 			cursor: cursorId
@@ -411,9 +424,10 @@ export class ReviewService {
 						}),
 					}
 				: undefined,
-			take: limit,
+			take: adjustedLimit,
 			where: {
 				movieId,
+				id: userReview ? { not: userReview.id } : {},
 				likes: userId && meLiked ? { some: { userId } } : {},
 				dislikes: userId && meDisliked ? { some: { userId } } : {},
 				comments: userId && meCommented ? { some: { userId } } : {},
@@ -422,19 +436,21 @@ export class ReviewService {
 			include: userSelect
 		});
 
-		const transformedReviews = await this.transformReviews(reviews, userId);
+		const allReviews = isFirstPage && userReview ? [userReview, ...reviews] : reviews;
 
-		const lastReviewIndex = reviews.length - 1;
+		const transformedReviews = await this.transformReviews(allReviews, userId);
+
+		const lastReviewIndex = allReviews.length - 1;
 
 		const nextCursor: ReviewCursorResponse | null =
-			reviews.length === limit
+			allReviews.length === limit
 				? {
-						id: reviews[lastReviewIndex].id,
+						id: allReviews[lastReviewIndex].id,
 						...(sort === 'likes' && {
-							likes: reviews[lastReviewIndex].totalLikes,
+							likes: allReviews[lastReviewIndex].totalLikes,
 						}),
 						...(sort === 'dislikes' && {
-							dislikes: reviews[lastReviewIndex].totalDislikes,
+							dislikes: allReviews[lastReviewIndex].totalDislikes,
 						}),
 					}
 				: null;
@@ -641,7 +657,7 @@ export class ReviewService {
 			updatedReview.movie.id,
 			rating,
 			undefined,
-			updatedReview.rating,
+			review.rating,
 		);
 
 		return {

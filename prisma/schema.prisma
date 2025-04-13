@@ -132,12 +132,16 @@ model Review {
 }
 
 model Profile {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @unique
-  firstName String?   @db.VarChar(32)
-  lastName  String?   @db.VarChar(32)
-  birthDate DateTime?
-  gender    String?
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique
+  firstName             String?   @db.VarChar(32)
+  lastName              String?   @db.VarChar(32)
+  birthDate             DateTime?
+  gender                String?
+  isHiddenProfile       Boolean   @default(false)
+  isHiddenReviews       Boolean   @default(true)
+  isHiddenWatchedMovies Boolean   @default(true)
+  isHiddenWishedMovies  Boolean   @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -162,17 +166,17 @@ model Actor {
   birthDate DateTime
   photoUrl  String?
   movies    MovieActors[]
+
+  @@unique([firstName, lastName, birthDate])
 }
 
 model Movie {
   id           Int              @id @default(autoincrement())
-  title        String
+  title        String           @unique
   description  String
   ageLimit     Int
   releaseDate  DateTime
   releaseYear  Int
-  rating       Float            @default(0.0)
-  totalReviews Int              @default(0)
   duration     Int
   cardImgUrl   String
   videoUrl     String
@@ -180,8 +184,10 @@ model Movie {
   posterUrl    String
   countries    MovieCountries[]
   genres       MovieGenre[]
-  reviews      Review[]
   actors       MovieActors[]
+  rating       Float            @default(0.0)
+  totalReviews Int              @default(0)
+  reviews      Review[]
   watchedBy    WatchedMovie[]
   wishedBy     WishedMovie[]
 }
@@ -199,6 +205,7 @@ model MovieCountries {
 model MovieActors {
   movieId Int
   actorId Int
+  role    String
 
   movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
   actor Actor @relation(fields: [actorId], references: [id], onDelete: Cascade)

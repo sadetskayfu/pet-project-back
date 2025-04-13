@@ -108,6 +108,10 @@ CREATE TABLE "Profile" (
     "lastName" VARCHAR(32),
     "birthDate" TIMESTAMP(3),
     "gender" TEXT,
+    "isHiddenProfile" BOOLEAN NOT NULL DEFAULT false,
+    "isHiddenReviews" BOOLEAN NOT NULL DEFAULT true,
+    "isHiddenWatchedMovies" BOOLEAN NOT NULL DEFAULT true,
+    "isHiddenWishedMovies" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "Profile_pkey" PRIMARY KEY ("id")
 );
@@ -133,6 +137,7 @@ CREATE TABLE "Actor" (
     "id" SERIAL NOT NULL,
     "firstName" VARCHAR(32) NOT NULL,
     "lastName" VARCHAR(32) NOT NULL,
+    "role" VARCHAR(32) NOT NULL,
     "birthDate" TIMESTAMP(3) NOT NULL,
     "photoUrl" TEXT,
 
@@ -147,13 +152,13 @@ CREATE TABLE "Movie" (
     "ageLimit" INTEGER NOT NULL,
     "releaseDate" TIMESTAMP(3) NOT NULL,
     "releaseYear" INTEGER NOT NULL,
-    "rating" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
-    "totalReviews" INTEGER NOT NULL DEFAULT 0,
     "duration" INTEGER NOT NULL,
     "cardImgUrl" TEXT NOT NULL,
     "videoUrl" TEXT NOT NULL,
-    "trailerUlr" TEXT NOT NULL,
+    "trailerUrl" TEXT NOT NULL,
     "posterUrl" TEXT NOT NULL,
+    "rating" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "totalReviews" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Movie_pkey" PRIMARY KEY ("id")
 );
@@ -237,6 +242,12 @@ CREATE UNIQUE INDEX "Country_label_key" ON "Country"("label");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Genre_name_key" ON "Genre"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Actor_firstName_lastName_birthDate_key" ON "Actor"("firstName", "lastName", "birthDate");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Movie_title_key" ON "Movie"("title");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WatchedMovie_userId_movieId_key" ON "WatchedMovie"("userId", "movieId");

@@ -39,22 +39,38 @@ export class ActorController {
 		name: 'name',
 		type: String,
 		required: false,
-	  })
+	})
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async getAllActors(
 		@Query() pagination: PaginationDto,
-		@Query('name') name?: string
+		@Query('name') name?: string,
 	): Promise<GetAllActorsResponse> {
 		const { actors, nextCursor } = await this.actorService.getAllActors(
 			pagination.limit,
 			pagination.cursor,
-			name
+			name,
 		);
 
 		return {
 			data: actors,
-			nextCursor
+			nextCursor,
 		};
+	}
+
+	@Get(':movieId')
+	@ApiOperation({ summary: 'Получить актеров для фильма' })
+	@ApiResponse({
+		status: 200,
+		type: [ActorResponse],
+	})
+	@ApiQuery({
+		name: 'movieId',
+		type: Number,
+	})
+	async getActorsForMovie(
+		@Param('movieId', ParseIntPipe) movieId: number,
+	): Promise<ActorResponse[]> {
+		return this.actorService.getActorsForMovie(movieId);
 	}
 
 	@Post()
@@ -68,12 +84,12 @@ export class ActorController {
 	async createActor(@Body() body: CreateActorDto): Promise<ActorResponse> {
 		const { firstName, lastName, birthDate, photoUrl } = body;
 
-		return this.actorService.createActor(
+		return this.actorService.createActor({
 			firstName,
 			lastName,
 			birthDate,
 			photoUrl,
-		);
+		});
 	}
 
 	@Put(':id')
@@ -84,16 +100,18 @@ export class ActorController {
 	})
 	//@Roles('admin')
 	//@UseGuards(AuthGuard, RolesGuard)
-	async updateActor(@Param('id', ParseIntPipe) id: number, @Body() body: CreateActorDto): Promise<ActorResponse> {
+	async updateActor(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() body: CreateActorDto,
+	): Promise<ActorResponse> {
 		const { firstName, lastName, birthDate, photoUrl } = body;
 
-		return this.actorService.updateActor(
-			id,
+		return this.actorService.updateActor(id, {
 			firstName,
 			lastName,
 			birthDate,
 			photoUrl,
-		);
+		});
 	}
 
 	@Delete(':id')

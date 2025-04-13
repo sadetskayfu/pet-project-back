@@ -88,7 +88,7 @@ export class MovieController {
 		return this.movieService.getMovieById(id, session?.id);
 	}
 
-	@Get('all')
+	@Get()
 	@ApiOperation({ summary: 'Получить фильмы' })
 	@ApiResponse({
 		status: 200,

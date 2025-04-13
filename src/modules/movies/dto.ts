@@ -14,7 +14,6 @@ import {
 import { CountryResponse } from 'src/modules/countries/dto';
 import { IsValidCountry } from 'src/decorators/valid-country.decorator';
 import { GenreResponse } from 'src/modules/genres/dto';
-import { ActorResponse } from '../actors/dto';
 
 export class CursorResponse {
     @ApiProperty({
@@ -134,11 +133,6 @@ export class MovieForCardResponse {
 
 export class MovieResponse extends MovieForCardResponse {
     @ApiProperty({
-        type: [ActorResponse]
-    })
-    actors: ActorResponse[]
-
-    @ApiProperty({
         example: 'Description...'
     })
     description: string
@@ -174,6 +168,11 @@ export class GetMoviesResponse {
         type: CursorResponse
     })
     nextCursor: CursorResponse | null
+}
+
+class Actor {
+    id: number
+    role: string
 }
 
 export class CreateMovieDto {
@@ -236,11 +235,11 @@ export class CreateMovieDto {
 	genres: number[];
 
     @ApiProperty({
-        example: [1, 2]
+        example: [{id: 1, role: 'Композитор'}, {id: 2, role: 'Актор'}]
     })
     @IsArray()
     @IsNotEmpty({each: true})
-    actors: number[]
+    actors: Actor[]
 }
 
 export class PaginationDto {

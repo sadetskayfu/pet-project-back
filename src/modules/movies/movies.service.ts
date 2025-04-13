@@ -16,6 +16,7 @@ import {
 	UpdateMovieRatingResponse,
 } from './dto';
 import { Prisma } from '@prisma/client';
+import { isRecordNotFoundError, isUniqueConstraintError } from 'src/shared/helpers/errors/prisma-errors';
 
 function createMovieForCardSelect() {
 	return {
@@ -45,11 +46,6 @@ function createMovieForCardSelect() {
 		genres: {
 			select: {
 				genre: true
-			}
-		},
-		actors: {
-			select: {
-				actor: true
 			}
 		},
 		countries: {
@@ -287,8 +283,9 @@ export class MovieService {
 						})),
 					},
 					actors: {
-						create: actors.map((actorId) => ({
-							actorId,
+						create: actors.map((actor) => ({
+							actorId: actor.id,
+							role: actor.role
 						})),
 					},
 				},
@@ -303,15 +300,13 @@ export class MovieService {
 
 			return transformedMovie;
 		} catch (error) {
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === 'P2003'
-			) {
-				throw new BadRequestException(
-					'One or more related entities (countries, genres, actors) not found',
-				);
+			if(isRecordNotFoundError(error)) {
+				throw new NotFoundException('One or more related entities (countries, genres, actors) not found')
 			}
-
+				
+			if(isUniqueConstraintError(error)) {
+				throw new BadRequestException(`Movie with title ${title} already existing`)
+			}
 			throw error;
 		}
 	}
@@ -377,8 +372,9 @@ export class MovieService {
 						})),
 					},
 					actors: {
-						create: actors.map((actorId) => ({
-							actorId,
+						create: actors.map((actor) => ({
+							actorId: actor.id,
+							role: actor.role
 						})),
 					},
 				},
@@ -441,13 +437,6 @@ export class MovieService {
 
 		const transformedMovie: MovieResponse = {
 			...movie,
-			actors: movie.actors.map((actor) => ({
-				id: actor.actor.id,
-				firstName: actor.actor.firstName,
-				lastName: actor.actor.lastName,
-				birthDate: actor.actor.birthDate,
-				photoUrl: actor.actor.photoUrl,
-			})),
 			genres: movie.genres.map((genre) => ({
 				id: genre.genre.id,
 				name: genre.genre.name,

@@ -54,7 +54,7 @@ export class CommentService {
 				},
 			});
 
-			const userDislike = await this.db.commentLike.findUnique({
+			const userDislike = await this.db.commentDislike.findUnique({
 				where: { userId_commentId: { userId, commentId } },
 				select: {
 					id: true,
@@ -75,9 +75,11 @@ export class CommentService {
 				},
 				data: {
 					totalLikes: { increment: 1 },
-					totalDislikes: userDislike ? { decrement: 1 } : {},
+					totalDislikes: userDislike ? { decrement: 1 } : undefined,
 				},
 			});
+
+			return { id: 2 }
 		} catch (error) {
 			if (isUniqueConstraintError(error)) {
 				throw new BadRequestException(
@@ -97,9 +99,6 @@ export class CommentService {
 		try {
 			await this.db.commentLike.delete({
 				where: { userId_commentId: { userId, commentId } },
-				select: {
-					id: true,
-				},
 			});
 
 			await this.db.comment.update({
@@ -110,6 +109,8 @@ export class CommentService {
 					totalLikes: { decrement: 1 },
 				},
 			});
+
+			return { id: 2 }
 		} catch (error) {
 			if (isRecordNotFoundError(error)) {
 				throw new NotFoundException(
@@ -125,9 +126,6 @@ export class CommentService {
 				data: {
 					user: { connect: { id: userId } },
 					comment: { connect: { id: commentId } },
-				},
-				select: {
-					id: true,
 				},
 			});
 
@@ -152,9 +150,11 @@ export class CommentService {
 				},
 				data: {
 					totalDislikes: { increment: 1 },
-					totalLikes: userLike ? { decrement: 1 } : {},
+					totalLikes: userLike ? { decrement: 1 } : undefined,
 				},
 			});
+
+			return { id: 2 }
 		} catch (error) {
 			if (isUniqueConstraintError(error)) {
 				throw new BadRequestException(
@@ -187,6 +187,8 @@ export class CommentService {
 					totalDislikes: { decrement: 1 },
 				},
 			});
+
+			return { id: 2 }
 		} catch (error) {
 			if (isRecordNotFoundError(error)) {
 				throw new NotFoundException(
@@ -316,7 +318,7 @@ export class CommentService {
 			where: {
 				reviewId,
 			},
-			orderBy: { id: 'desc' },
+			orderBy: { id: 'asc' },
 			include: userSelect,
 		});
 

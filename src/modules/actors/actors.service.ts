@@ -5,6 +5,7 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
+import { CreateActorDto } from './dto';
 
 @Injectable()
 export class ActorService {
@@ -66,11 +67,10 @@ export class ActorService {
 	}
 
 	async createActor(
-		firstName: string,
-		lastName: string,
-		birthDate: string,
-		photoUrl?: string,
+		data: CreateActorDto
 	) {
+		const { firstName, lastName, photoUrl, birthDate } = data
+
 		const existingActor = await this.findActor(
 			firstName,
 			lastName,
@@ -119,11 +119,10 @@ export class ActorService {
 
 	async updateActor(
 		id: number,
-		firstName: string,
-		lastName: string,
-		birthDate: string,
-		photoUrl?: string,
+		data: CreateActorDto
 	) {
+		const {firstName, lastName, birthDate, photoUrl} = data
+
 		await this.findActorById(id);
 
 		const existingActor = await this.findActor(
@@ -202,5 +201,19 @@ export class ActorService {
 			actors,
 			nextCursor,
 		};
+	}
+
+	async getActorsForMovie(movieId: number) {
+		const actors = await this.db.actor.findMany({
+			where: {
+				movies: {
+					some: {
+						movieId
+					}
+				}
+			}
+		})
+
+		return actors
 	}
 }
