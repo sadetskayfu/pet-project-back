@@ -51,6 +51,10 @@ export class ActorResponse {
     photoUrl?: string | null
 }
 
+export class ActorForMovieResponse extends ActorResponse {
+    role: string
+}
+
 export class GetAllActorsResponse {
     @ApiProperty({ type: [ActorResponse]})
     data: ActorResponse[];
@@ -63,13 +67,13 @@ export class GetAllActorsResponse {
 
 export class CreateActorDto {
     @ApiProperty()
-    @Length(1, 50)
+    @Length(1, 32)
     @IsNotEmpty()
     @IsString()
     firstName: string
 
     @ApiProperty()
-    @Length(1, 50)
+    @Length(1, 32)
     @IsNotEmpty()
     @IsString()
     lastName: string

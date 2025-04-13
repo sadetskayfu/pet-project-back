@@ -5,7 +5,7 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
-import { CreateActorDto } from './dto';
+import { CreateActorDto, ActorForMovieResponse } from './dto';
 
 @Injectable()
 export class ActorService {
@@ -203,17 +203,17 @@ export class ActorService {
 		};
 	}
 
-	async getActorsForMovie(movieId: number) {
-		const actors = await this.db.actor.findMany({
+	async getActorsForMovie(movieId: number): Promise<ActorForMovieResponse[]> {
+		const actors = await this.db.movieActors.findMany({
 			where: {
-				movies: {
-					some: {
-						movieId
-					}
-				}
+				movieId
+			},
+			select: {
+				actor: true,
+				role: true
 			}
 		})
 
-		return actors
+		return actors.map((actor) => ({...actor.actor, role: actor.role}))
 	}
 }
