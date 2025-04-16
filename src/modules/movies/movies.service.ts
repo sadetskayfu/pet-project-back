@@ -448,7 +448,7 @@ export class MovieService {
 			isRated: userId ? ratedMovieIds.has(movie.id) : false,
 			isWatched: userId ? watchedMovieIds.has(movie.id) : false,
 			isWished: userId
-				? watchedMovieIds.has(movie.id)
+				? wishedMovieIds.has(movie.id)
 				: false,
 		};
 
@@ -569,6 +569,8 @@ export class MovieService {
 			userId,
 		);
 
+		this.logger.log(transformedMovies)
+
 		const nextCursor =
 			movies.length === limit
 				? {
@@ -592,7 +594,7 @@ export class MovieService {
 		const movies = await this.db.movie.findMany({
 			take: limit,
 			select: movieForCardSelect,
-			orderBy: { id: 'desc' }
+			orderBy: { releaseDate: 'desc' }
 		})
 
 		const transformedMovies = this.transformMoviesForCard(movies, userId)

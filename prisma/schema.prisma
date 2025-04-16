@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MediaType {
+  movie
+  series
+  multifilm
+}
+
 model User {
   id              Int              @id @default(autoincrement())
   email           String           @unique @db.VarChar(64)
@@ -179,9 +185,8 @@ model Movie {
   releaseYear  Int
   duration     Int
   cardImgUrl   String
-  videoUrl     String
-  trailerUrl   String
   posterUrl    String
+  type         MediaType       @default(movie)
   countries    MovieCountries[]
   genres       MovieGenre[]
   actors       MovieActors[]

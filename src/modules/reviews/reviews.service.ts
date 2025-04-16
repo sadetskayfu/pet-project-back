@@ -49,6 +49,7 @@ function createReviewCardSelect() {
 		rating: true,
 		createdAt: true,
 		userId: true,
+		totalLikes: true,
 		user: {
 			select: {
 				id: true,

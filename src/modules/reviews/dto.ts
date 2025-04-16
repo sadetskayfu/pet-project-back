@@ -175,6 +175,11 @@ export class ReviewCardForMovieResponse {
     userId: number
 
     @ApiProperty({
+        example: 1
+    })
+    totalLikes: number
+
+    @ApiProperty({
         type: ReviewUserResponse
     })
     user: ReviewUserResponse

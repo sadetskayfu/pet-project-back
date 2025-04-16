@@ -74,20 +74,6 @@ export class MovieController {
 		return this.movieService.deleteMovie(id);
 	}
 
-	@Get(':id')
-	@ApiOperation({ summary: 'Получить фильм по id' })
-	@ApiResponse({
-		status: 200,
-		type: MovieResponse,
-	})
-	@UseGuards(OptionalAuthGuard)
-	async getMovieById(
-		@Param('id', ParseIntPipe) id: number,
-		@SessionInfo() session?: SessionInfoDto,
-	): Promise<MovieResponse> {
-		return this.movieService.getMovieById(id, session?.id);
-	}
-
 	@Get()
 	@ApiOperation({ summary: 'Получить фильмы' })
 	@ApiResponse({
@@ -214,5 +200,19 @@ export class MovieController {
 			limit,
 			session?.id
 		);
+	}
+
+	@Get(':id')
+	@ApiOperation({ summary: 'Получить фильм по id' })
+	@ApiResponse({
+		status: 200,
+		type: MovieResponse,
+	})
+	@UseGuards(OptionalAuthGuard)
+	async getMovieById(
+		@Param('id', ParseIntPipe) id: number,
+		@SessionInfo() session?: SessionInfoDto,
+	): Promise<MovieResponse> {
+		return this.movieService.getMovieById(id, session?.id);
 	}
 }

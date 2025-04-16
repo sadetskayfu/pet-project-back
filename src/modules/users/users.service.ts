@@ -188,4 +188,23 @@ export class UserService {
 
 		return updatedUser
 	}
+
+	async getUserAvatar(userId?: number) {
+		if(!userId) return null
+
+		const user = await this.db.user.findUnique({
+			where: {
+				id: userId
+			},
+			select: {
+				avatarUrl: true
+			}
+		})
+
+		if(!user) {
+			throw new NotFoundException('Пользователя с таким id не существуют')
+		}
+
+		return user.avatarUrl || ''
+	}
 }

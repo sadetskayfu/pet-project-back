@@ -67,6 +67,7 @@ export class AuthController {
 	@ApiOperation({ summary: 'Выход из системы' })
 	signOut(@Res({ passthrough: true }) res: Response) {
 		this.cookieService.removeToken(res);
+		return 'Вы успешно вышли из своего аккаунта'
 	}
 
 	@Get('session')
